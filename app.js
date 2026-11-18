@@ -1359,7 +1359,7 @@ function obHTML() {
   const steps = [
     () => `<div class="ob"><div class="ob-emoji">🐷</div><h2>¡Hola! Soy tu Hucha</h2>
       <p>Apuntar un gasto te llevará <b>2 toques</b>. Yo hago las cuentas, busco dónde puedes ahorrar y celebro tus avances.</p>
-      <p class="muted small">🔒 Todo se guarda solo en este dispositivo. Nada se sube a internet.</p>
+      <p class="muted small">🔒 Todo se guarda en tu dispositivo. Si quieres usarla también en otro, puedes sincronizarla cifrada.</p>
       <button class="btn primary w100" data-action="obNext">Empezar (30 segundos)</button>
       <button class="btn link" data-action="syncJoin">¿Ya usas Hucha en otro dispositivo? Vincular</button></div>`,
     () => `<div class="ob"><div class="ob-step">1 de 3</div><h2>¿Cuánto cobras al mes?</h2>
