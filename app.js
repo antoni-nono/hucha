@@ -10,18 +10,18 @@ const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.m
 
 /* ---------- Categorías ---------- */
 const CATS = [
-  { id: 'super', name: 'Supermercado', short: 'Súper', emoji: '🛒', type: 'need', color: '#22a06b' },
-  { id: 'casa', name: 'Casa y facturas', short: 'Casa', emoji: '🏠', type: 'need', color: '#3b82f6' },
-  { id: 'transporte', name: 'Transporte', short: 'Transporte', emoji: '🚌', type: 'need', color: '#0891b2' },
-  { id: 'salud', name: 'Salud', short: 'Salud', emoji: '💊', type: 'need', color: '#0d9488' },
-  { id: 'comer', name: 'Comer fuera', short: 'Comer fuera', emoji: '🍽️', type: 'want', color: '#f97316' },
-  { id: 'delivery', name: 'Comida a domicilio', short: 'Domicilio', emoji: '🛵', type: 'want', color: '#e11d48' },
-  { id: 'cafe', name: 'Cafés y snacks', short: 'Cafés', emoji: '☕', type: 'want', color: '#92400e' },
-  { id: 'ocio', name: 'Ocio y planes', short: 'Ocio', emoji: '🎉', type: 'want', color: '#9333ea' },
-  { id: 'compras', name: 'Compras', short: 'Compras', emoji: '🛍️', type: 'want', color: '#db2777' },
-  { id: 'subs', name: 'Suscripciones', short: 'Suscrip.', emoji: '📺', type: 'want', color: '#4f46e5' },
-  { id: 'viajes', name: 'Viajes', short: 'Viajes', emoji: '✈️', type: 'want', color: '#ca8a04' },
-  { id: 'otros', name: 'Otros', short: 'Otros', emoji: '📦', type: 'want', color: '#64748b' },
+  { id: 'super', name: 'Supermercado', short: 'Súper', emoji: '🛒', type: 'need', color: '#4c9a6a' },
+  { id: 'casa', name: 'Casa y facturas', short: 'Casa', emoji: '🏠', type: 'need', color: '#4f7fb8' },
+  { id: 'transporte', name: 'Transporte', short: 'Transporte', emoji: '🚌', type: 'need', color: '#3f8f9b' },
+  { id: 'salud', name: 'Salud', short: 'Salud', emoji: '💊', type: 'need', color: '#5aa39a' },
+  { id: 'comer', name: 'Comer fuera', short: 'Comer fuera', emoji: '🍽️', type: 'want', color: '#d08a4e' },
+  { id: 'delivery', name: 'Comida a domicilio', short: 'Domicilio', emoji: '🛵', type: 'want', color: '#c9666f' },
+  { id: 'cafe', name: 'Cafés y snacks', short: 'Cafés', emoji: '☕', type: 'want', color: '#9a7353' },
+  { id: 'ocio', name: 'Ocio y planes', short: 'Ocio', emoji: '🎉', type: 'want', color: '#8b72c2' },
+  { id: 'compras', name: 'Compras', short: 'Compras', emoji: '🛍️', type: 'want', color: '#c26f9b' },
+  { id: 'subs', name: 'Suscripciones', short: 'Suscrip.', emoji: '📺', type: 'want', color: '#6c74c4' },
+  { id: 'viajes', name: 'Viajes', short: 'Viajes', emoji: '✈️', type: 'want', color: '#c4a245' },
+  { id: 'otros', name: 'Otros', short: 'Otros', emoji: '📦', type: 'want', color: '#7c8784' },
 ];
 const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
 const catOf = id => CAT[id] || CAT.otros;
@@ -305,7 +305,7 @@ function budgetInfo() {
   return { p, budget, spent, spentToday, pending, daysLeft, remaining, daily, todayLeft: daily - spentToday, hasBudget: budget > 0, firstMonth };
 }
 
-const HABIT_SOURCES = ['manual', 'ocr', 'paste', 'wish'];
+const HABIT_SOURCES = ['manual', 'ocr', 'paste', 'wish', 'ia'];
 function loggedDays() {
   const set = new Set(state.noSpend);
   for (const e of state.expenses) if (HABIT_SOURCES.includes(e.source)) set.add(e.date);
@@ -527,10 +527,10 @@ function toast(msg, opts = {}) {
 }
 
 function confetti() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (state.settings.calm || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const wrap = document.createElement('div');
   wrap.className = 'confetti';
-  const colors = ['#4f46e5', '#22a06b', '#f97316', '#e11d48', '#eab308', '#0891b2', '#db2777'];
+  const colors = ['#4c9a6a', '#7fc3b3', '#d08a4e', '#c4a245', '#8b72c2', '#4f7fb8', '#c26f9b'];
   for (let i = 0; i < 46; i++) {
     const s = document.createElement('span');
     s.style.left = Math.random() * 100 + '%';
@@ -613,7 +613,7 @@ function viewHoy() {
   }).join('');
   const marked = state.noSpend.includes(t);
   html += `<section class="card">
-    <div class="streak-n">🔥 ${st} ${st === 1 ? 'día' : 'días'} de racha</div>
+    <div class="streak-n">${st ? `🔥 ${st} ${st === 1 ? 'día' : 'días'} de racha` : '🌱 Hoy puedes empezar tu racha'}</div>
     <div class="muted small">Cuenta cada día que apuntas algo. Saltarte un día suelto no la rompe.</div>
     <div class="week">${dots}</div>
     ${manualToday.length === 0 && !marked ? '<button class="btn ghost w100" data-action="noSpendToday">✨ Hoy no he gastado nada</button>' : ''}
@@ -686,8 +686,8 @@ function viewMes() {
 
   const needs = sum(ex.filter(e => catOf(e.cat).type === 'need')), wants = total - needs;
   html += `<section class="card"><h3>Necesidades vs. caprichos</h3>
-    <div class="split"><i style="width:${needs / total * 100}%;background:#22a06b"></i><i style="width:${wants / total * 100}%;background:#f97316"></i></div>
-    <div class="split-legend"><span><i class="sw-dot" style="background:#22a06b"></i>Necesidades <b>${moneyR(needs)}</b></span><span><i class="sw-dot" style="background:#f97316"></i>Caprichos <b>${moneyR(wants)}</b></span></div>
+    <div class="split"><i style="width:${needs / total * 100}%;background:#4c9a6a"></i><i style="width:${wants / total * 100}%;background:#d08a4e"></i></div>
+    <div class="split-legend"><span><i class="sw-dot" style="background:#4c9a6a"></i>Necesidades <b>${moneyR(needs)}</b></span><span><i class="sw-dot" style="background:#d08a4e"></i>Caprichos <b>${moneyR(wants)}</b></span></div>
     <p class="muted small" style="margin:8px 0 0">"Caprichos" no es malo: es lo que puedes ajustar si lo necesitas.</p></section>`;
 
   html += calendarHTML(p, ex, t);
@@ -1291,7 +1291,9 @@ function settingsHTML() {
     <button class="btn link" data-action="exportCSV">Exportar gastos a Excel (CSV)</button>
 
     <div class="section-title">Aspecto</div>
-    <div class="btn-row">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `<button class="btn sm ${(s.theme || 'auto') === v ? 'primary' : 'ghost'}" data-action="theme" data-v="${v}">${l}</button>`).join('')}</div>
+    <div class="btn-row" style="margin-bottom:14px">${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `<button class="btn sm ${(s.theme || 'auto') === v ? 'primary' : 'ghost'}" data-action="theme" data-v="${v}">${l}</button>`).join('')}</div>
+    <div class="swatches" role="radiogroup" aria-label="Color principal">${ACCENTS.map(([v, l, c]) => `<button class="swatch ${(s.accent || 'salvia') === v ? 'on' : ''}" data-action="accent" data-v="${v}" role="radio" aria-checked="${(s.accent || 'salvia') === v}"><i style="background:${c}"></i>${l}</button>`).join('')}</div>
+    <button class="toggle-row" data-action="calmToggle" role="switch" aria-checked="${!!s.calm}"><span class="grow"><b>🌿 Modo calma</b><br><span class="muted small">Sin animaciones ni confeti. Todo más quieto.</span></span><span class="switch ${s.calm ? 'on' : ''}"></span></button>
 
     <div class="section-title">Zona delicada</div>
     <button class="btn danger w100" data-action="wipe">Borrar todos mis datos</button>
@@ -1347,10 +1349,12 @@ function exportCSV() {
   const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
   shareOrDownload(new Blob([csv], { type: 'text/csv' }), `hucha-gastos-${todayISO()}.csv`, 'text/csv');
 }
+const ACCENTS = [['salvia', 'Salvia', '#2e7468'], ['oceano', 'Océano', '#2f6690'], ['lavanda', 'Lavanda', '#6a5a9e'], ['arcilla', 'Arcilla', '#a0563b']];
 function applyTheme() {
-  const t = state.settings.theme || 'auto';
-  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', t);
+  const h = document.documentElement, t = state.settings.theme || 'auto', a = state.settings.accent || 'salvia';
+  if (t === 'auto') h.removeAttribute('data-theme'); else h.setAttribute('data-theme', t);
+  if (a === 'salvia') h.removeAttribute('data-accent'); else h.setAttribute('data-accent', a);
+  h.classList.toggle('calm', !!state.settings.calm);
 }
 
 /* =====================================================================
@@ -1516,7 +1520,7 @@ const SYNC_BASE_KEY = 'hucha.syncBase'; // última versión común: sirve para s
 const GIST_FILE = 'hucha.json';
 const GH_API = 'https://api.github.com';
 const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Hucha';
-const LOCAL_ONLY = ['theme'];           // ajustes que cada dispositivo decide por su cuenta
+const LOCAL_ONLY = ['theme', 'accent', 'calm'];           // ajustes que cada dispositivo decide por su cuenta
 
 const sync = { cfg: readJSON(SYNC_KEY), busy: false, again: false, timer: null, last: 0, error: '' };
 
@@ -2127,6 +2131,8 @@ const actions = {
   importBackup: () => $('#fileJson').click(),
   exportCSV: () => exportCSV(),
   theme: el => { state.settings.theme = el.dataset.v; save(); applyTheme(); setSheet(settingsHTML()); },
+  accent: el => { state.settings.accent = el.dataset.v; save(); applyTheme(); setSheet(settingsHTML()); },
+  calmToggle: () => { state.settings.calm = !state.settings.calm; save(); applyTheme(); setSheet(settingsHTML()); },
   wipe: () => {
     if (!confirm('¿Borrar TODOS tus datos de este dispositivo? No se puede deshacer (salvo que tengas una copia).')) return;
     if (!confirm('¿Seguro del todo?')) return;

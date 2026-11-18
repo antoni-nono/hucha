@@ -1,19 +1,23 @@
 /* Hucha — estilos. Pensado para móvil primero, botones grandes y poca carga visual. */
+/* Paleta calmada: verde salvia (calma + crecimiento), fondo cálido tipo papel,
+   ámbar suave para avisos (nunca rojo). Contraste AA comprobado en claro y oscuro. */
 :root {
-  --bg: #f6f5f2;
+  --bg: #f4f3ee;
   --card: #ffffff;
-  --text: #1c1c1e;
-  --muted: #6e6e73;
-  --line: #e7e5e0;
-  --track: #efeee9;
-  --accent: #4f46e5;
+  --text: #1e2826;
+  --muted: #62706b;
+  --line: #e3e2da;
+  --track: #ecebe4;
+  --accent: #2e7468;
   --accent-ink: #ffffff;
-  --accent-soft: #eceafd;
-  --good: #15803d;
-  --good-soft: #e3f5e9;
-  --warn: #b45309;
-  --warn-soft: #fdf0dc;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 18px rgba(0, 0, 0, .05);
+  --accent-soft: #e2efeb;
+  --good: #2f7a4a;
+  --good-soft: #e4f1e7;
+  --warn: #9a5b14;
+  --warn-soft: #f7ecda;
+  --toast: #1e2826;
+  --toast-link: #9fd8c9;
+  --shadow: 0 1px 2px rgba(30, 40, 38, .04), 0 6px 18px rgba(30, 40, 38, .05);
   --radius: 22px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -21,18 +25,33 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111113; --card: #1c1c1f; --text: #f2f2f4; --muted: #a1a1a8; --line: #2c2c31; --track: #2a2a2f;
-    --accent: #8b85ff; --accent-ink: #0d0d1a; --accent-soft: #25234a;
-    --good: #4ade80; --good-soft: #15291c; --warn: #fbbf24; --warn-soft: #2d2412; --shadow: none;
+    --bg: #101614; --card: #19201e; --text: #eaf0ed; --muted: #9ba8a3; --line: #28312e; --track: #232b28;
+    --accent: #7fc3b3; --accent-ink: #0b1c18; --accent-soft: #1c3530;
+    --good: #8fd3a2; --good-soft: #15291d; --warn: #e5b56b; --warn-soft: #2c2416;
+    --toast: #2a3431; --toast-link: #9fd8c9; --shadow: none;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111113; --card: #1c1c1f; --text: #f2f2f4; --muted: #a1a1a8; --line: #2c2c31; --track: #2a2a2f;
-  --accent: #8b85ff; --accent-ink: #0d0d1a; --accent-soft: #25234a;
-  --good: #4ade80; --good-soft: #15291c; --warn: #fbbf24; --warn-soft: #2d2412; --shadow: none;
+  --bg: #101614; --card: #19201e; --text: #eaf0ed; --muted: #9ba8a3; --line: #28312e; --track: #232b28;
+  --accent: #7fc3b3; --accent-ink: #0b1c18; --accent-soft: #1c3530;
+  --good: #8fd3a2; --good-soft: #15291d; --warn: #e5b56b; --warn-soft: #2c2416;
+  --toast: #2a3431; --toast-link: #9fd8c9; --shadow: none;
   color-scheme: dark;
 }
+
+/* Color principal a elegir en Ajustes → Aspecto (salvia es el de serie) */
+:root[data-accent="oceano"] { --accent: #2f6690; --accent-soft: #e3edf5; --toast-link: #a9cdea; }
+:root[data-accent="lavanda"] { --accent: #6a5a9e; --accent-soft: #eeeaf6; --toast-link: #cbc0f0; }
+:root[data-accent="arcilla"] { --accent: #a0563b; --accent-soft: #f6e9e2; --toast-link: #efc0ab; }
+@media (prefers-color-scheme: dark) {
+  :root[data-accent="oceano"]:not([data-theme="light"]) { --accent: #8fbde3; --accent-ink: #0b1724; --accent-soft: #1b2d3d; }
+  :root[data-accent="lavanda"]:not([data-theme="light"]) { --accent: #b9abe8; --accent-ink: #161126; --accent-soft: #2a2540; }
+  :root[data-accent="arcilla"]:not([data-theme="light"]) { --accent: #e3a68c; --accent-ink: #24130c; --accent-soft: #35251e; }
+}
+:root[data-theme="dark"][data-accent="oceano"] { --accent: #8fbde3; --accent-ink: #0b1724; --accent-soft: #1b2d3d; }
+:root[data-theme="dark"][data-accent="lavanda"] { --accent: #b9abe8; --accent-ink: #161126; --accent-soft: #2a2540; }
+:root[data-theme="dark"][data-accent="arcilla"] { --accent: #e3a68c; --accent-ink: #24130c; --accent-soft: #35251e; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; }
@@ -306,12 +325,12 @@ textarea { min-height: 140px; resize: vertical; }
 .toast {
   position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translate(-50%, 20px);
   width: max-content; max-width: calc(100% - 32px); z-index: 40;
-  background: #1c1c1e; color: #fff; border-radius: 16px; padding: 12px 14px 12px 18px;
+  background: var(--toast); color: #fff; border-radius: 16px; padding: 12px 14px 12px 18px;
   display: flex; align-items: center; gap: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.toast button { color: #a5b4fc; font-weight: 800; padding: 6px 4px; }
+.toast button { color: var(--toast-link); font-weight: 800; padding: 6px 4px; }
 .celebrate {
   position: fixed; top: calc(12px + var(--safe-t)); left: 50%; transform: translate(-50%, -140%);
   width: min(420px, calc(100% - 32px)); z-index: 45;
@@ -401,3 +420,19 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .ai-thumbs button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--text, #222); color: var(--card); font-size: 12px; line-height: 1; }
 .ai-foot { margin: 6px 0 0; text-align: center; }
 .ai-foot .btn.link { padding: 0; min-height: 0; font-size: inherit; }
+
+/* ---------- Aspecto: color principal y modo calma ---------- */
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.swatch { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); min-width: 64px; }
+.swatch i { width: 40px; height: 40px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .5); }
+.swatch.on { color: var(--text); }
+.swatch.on i { outline: 3px solid var(--text); outline-offset: 3px; }
+.toggle-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; width: 100%; text-align: left; margin-bottom: 8px; }
+.toggle-row .grow { flex: 1; }
+.switch { width: 50px; height: 30px; border-radius: 99px; background: var(--track); position: relative; flex: none; transition: background .2s; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s; }
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(20px); }
+/* Modo calma: sin animaciones ni confeti */
+html.calm *, html.calm *::before, html.calm *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+html.calm .confetti { display: none; }
