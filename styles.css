@@ -95,7 +95,7 @@ p { margin: 0 0 12px; }
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: min(560px, 100%); z-index: 10;
-  display: grid; grid-template-columns: repeat(6, 1fr); align-items: end;
+  display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
   padding: 6px 8px calc(8px + var(--safe-b));
   background: color-mix(in srgb, var(--card) 92%, transparent);
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -461,3 +461,8 @@ html.calm .confetti { display: none; }
 .week-dots { display: flex; gap: 8px; margin: 12px 0 8px; }
 .week-dots i { width: 28px; height: 28px; border-radius: 50%; background: var(--track); display: block; }
 .week-dots i.on { background: var(--accent); }
+
+/* ---------- Pestaña Ahorro: Metas | Pistas ---------- */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--track); border-radius: 16px; margin: 4px 0 14px; }
+.seg button { min-height: 42px; border-radius: 12px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }

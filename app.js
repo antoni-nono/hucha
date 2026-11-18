@@ -228,7 +228,7 @@ function save() {
   syncSoon();
 }
 
-const ui = { tab: 'hoy', monthOffset: 0, cat: null, day: null };
+const ui = { tab: 'hoy', sub: 'metas', monthOffset: 0, cat: null, day: null };   // sub: parte de la pestaña Ahorro (metas | pistas)
 
 /* =====================================================================
    Lógica: periodos, presupuesto, racha, gastos fijos
@@ -613,7 +613,7 @@ function checkBadges() {
    UI básica: render, hojas, avisos, confeti
    ===================================================================== */
 function render() {
-  const views = { hoy: viewHoy, mes: viewMes, ahorro: viewAhorro, metas: viewMetas };
+  const views = { hoy: viewHoy, mes: viewMes, ahorro: viewAhorro };
   $('#view').innerHTML = views[ui.tab]();
   $$('.tabbar [data-tab]').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === ui.tab);
@@ -623,8 +623,7 @@ function render() {
   const titles = {
     hoy: `${h < 6 ? 'Buenas noches' : h < 14 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches'}<small>${cap(WEEKDAYS[new Date().getDay()])} ${new Date().getDate()} de ${MONTHS[new Date().getMonth()]}</small>`,
     mes: 'Tu mes<small>Dónde se va tu dinero</small>',
-    ahorro: 'Ahorro<small>Pistas, sin sermones</small>',
-    metas: 'Metas<small>Para qué ahorras</small>',
+    ahorro: 'Ahorro<small>Tus metas y pistas, sin sermones</small>',
   };
   $('#topTitle').innerHTML = titles[ui.tab];
 }
@@ -764,7 +763,7 @@ function viewHoy() {
       <div style="margin-top:10px"><button class="btn sm primary" data-action="openSettings">Añadir fijos</button></div>
       <button class="x" data-action="dismiss" data-k="fixed" aria-label="Cerrar aviso">✕</button></div>`;
   } else if (tip) {
-    html += `<section class="card"><button class="tip-card" data-tab="ahorro"><span class="emoji">${tip.emoji}</span><span><b>${tip.title}</b><br><span class="muted small">Toca para ver más pistas de ahorro →</span></span></button></section>`;
+    html += `<section class="card"><button class="tip-card" data-tab="ahorro" data-sub="pistas"><span class="emoji">${tip.emoji}</span><span><b>${tip.title}</b><br><span class="muted small">Toca para ver más pistas de ahorro →</span></span></button></section>`;
   }
 
   const last = state.settings.lastBackup;
@@ -895,7 +894,12 @@ const TIPS = [
   ['📆', '<b>Revisión de 10 minutos</b> el primer domingo de cada mes: mira la pestaña Mes y elige UNA cosa que mejorar. Solo una.'],
 ];
 
+/* Pestaña Ahorro = Metas (metas, lista de espera, logros) + Pistas (detector de ahorro) */
 function viewAhorro() {
+  const seg = `<div class="seg" role="tablist">${[['metas', '🎯 Metas y antojos'], ['pistas', '💡 Pistas']].map(([v, l]) => `<button role="tab" aria-selected="${ui.sub === v}" class="${ui.sub === v ? 'on' : ''}" data-action="sub" data-v="${v}">${l}</button>`).join('')}</div>`;
+  return seg + (ui.sub === 'pistas' ? viewPistas() : viewMetas());
+}
+function viewPistas() {
   const ins = computeInsights();
   let html = '';
   const total = ins.reduce((a, i) => a + (i.save || 0), 0);
@@ -2223,6 +2227,7 @@ const actions = {
   pasteGo: () => { const r = textToItems($('#pasteArea').value); handleParsed(r, 'paste'); },
   rvAll: el => { review.items.forEach(i => { i.checked = el.dataset.v === '1'; }); setSheet(reviewHTML()); },
   rvSave: () => reviewSave(),
+  sub: el => { ui.sub = el.dataset.v; render(); window.scrollTo({ top: 0 }); },
   // Revisión semanal
   weekOpen: () => weekOpen(),
   weekNext: () => { wkr.step++; setSheet(weekHTML()); },
@@ -2345,7 +2350,7 @@ const actions = {
 document.addEventListener('click', e => {
   if (e.target.id === 'addDate' && e.target.showPicker) { try { e.target.showPicker(); } catch (err) { /* iOS lo abre solo */ } }
   const tab = e.target.closest('[data-tab]');
-  if (tab) { ui.tab = tab.dataset.tab; ui.cat = null; ui.day = null; render(); window.scrollTo({ top: 0 }); return; }
+  if (tab) { ui.tab = tab.dataset.tab; if (tab.dataset.sub) ui.sub = tab.dataset.sub; ui.cat = null; ui.day = null; render(); window.scrollTo({ top: 0 }); return; }
   const el = e.target.closest('[data-action]');
   if (el && actions[el.dataset.action]) actions[el.dataset.action](el);
 });
@@ -2412,7 +2417,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('online', () => syncSoon(300));
 setInterval(() => { if (document.visibilityState === 'visible' && !sync.busy && Date.now() - sync.last > 55000) syncSoon(0); }, 60000);
-setInterval(() => { if (!sheetKind && ui.tab === 'metas') render(); }, 60000);
+setInterval(() => { if (!sheetKind && ui.tab === 'ahorro' && ui.sub === 'metas') render(); }, 60000);
 
 /* Atajo por URL: …/#add?importe=12,50&concepto=Mercadona (útil desde Atajos o el Mac) */
 function handleHash() {
