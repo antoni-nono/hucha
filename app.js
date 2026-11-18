@@ -227,7 +227,7 @@ function save() {
   syncSoon();
 }
 
-const ui = { tab: 'hoy', monthOffset: 0, cat: null };
+const ui = { tab: 'hoy', monthOffset: 0, cat: null, day: null };
 
 /* =====================================================================
    Lógica: periodos, presupuesto, racha, gastos fijos
@@ -504,8 +504,9 @@ function openSheet(html, kind = '') {
   root.classList.add('open');
   sheetKind = kind;
   document.body.classList.add('noscroll');
+  initWheels();
 }
-function setSheet(html) { const s = $('.sheet'); if (s) { const top = s.scrollTop; s.innerHTML = html; s.scrollTop = top; } }
+function setSheet(html) { const s = $('.sheet'); if (s) { const top = s.scrollTop; s.innerHTML = html; s.scrollTop = top; initWheels(); } }
 function closeSheet() {
   const root = $('#sheetRoot');
   root.classList.remove('open');
@@ -689,25 +690,61 @@ function viewMes() {
     <div class="split-legend"><span><i class="sw-dot" style="background:#22a06b"></i>Necesidades <b>${moneyR(needs)}</b></span><span><i class="sw-dot" style="background:#f97316"></i>Caprichos <b>${moneyR(wants)}</b></span></div>
     <p class="muted small" style="margin:8px 0 0">"Caprichos" no es malo: es lo que puedes ajustar si lo necesitas.</p></section>`;
 
-  const perDay = {};
-  for (const e of ex) if (e.source !== 'fijo') perDay[e.date] = (perDay[e.date] || 0) + e.amount;
-  const daysArr = [...Array(p.days)].map((_, i) => addDays(p.start, i));
-  const max = Math.max(1, ...Object.values(perDay));
-  html += `<section class="card"><h3>Día a día <span class="muted small">(sin fijos)</span></h3>
-    <div class="days-chart">${daysArr.map(d => {
-      const v = perDay[d] || 0, wd = fromISO(d).getDay();
-      return `<div class="dbar ${d === t ? 'today' : ''} ${d > t ? 'future' : ''} ${wd === 0 || wd === 6 ? 'weekend' : ''}" title="${niceDate(d)}: ${money(v)}"><i style="height:${v / max * 100}%"></i></div>`;
-    }).join('')}</div>
-    <div class="days-axis"><span>${fromISO(p.start).getDate()} ${MONTHS_S[fromISO(p.start).getMonth()]}</span><span>${fromISO(p.end).getDate()} ${MONTHS_S[fromISO(p.end).getMonth()]}</span></div>
-  </section>`;
+  html += calendarHTML(p, ex, t);
 
-  const list = ex.filter(e => !ui.cat || catOf(e.cat).id === ui.cat).sort(byRecent);
+  const list = ex.filter(e => (!ui.cat || catOf(e.cat).id === ui.cat) && (!ui.day || e.date === ui.day)).sort(byRecent);
   const groups = {};
   for (const e of list) (groups[e.date] = groups[e.date] || []).push(e);
-  html += `<section class="card"><h3>Movimientos${ui.cat ? ` · ${catOf(ui.cat).emoji} ${catOf(ui.cat).name} <button class="pill" data-action="filterCat" data-cat="${ui.cat}">Quitar filtro ✕</button>` : ''}</h3>
-    ${Object.entries(groups).map(([d, arr]) => `<div class="day-head"><span>${niceDate(d)}</span><span>${money(sum(arr))}</span></div>${listRows(arr)}`).join('')}
+  const filters = [
+    ui.day ? `<button class="pill" data-action="pickDay" data-d="${ui.day}">${niceDate(ui.day)} ✕</button>` : '',
+    ui.cat ? `<button class="pill" data-action="filterCat" data-cat="${ui.cat}">${catOf(ui.cat).emoji} ${catOf(ui.cat).name} ✕</button>` : '',
+  ].join(' ');
+  html += `<section class="card" id="movs"><h3>Movimientos ${filters}</h3>
+    ${list.length ? Object.entries(groups).map(([d, arr]) => `<div class="day-head"><span>${niceDate(d)}</span><span>${money(sum(arr))}</span></div>${listRows(arr)}`).join('')
+      : `<p class="muted">${ui.day && ui.day <= t ? 'Ese día no gastaste nada ✨' : 'No hay gastos con este filtro.'}</p>`}
   </section>`;
   return html;
+}
+
+/* ---------- Calendario: qué días gastas más ---------- */
+function calendarHTML(p, ex, t) {
+  const perDay = {};
+  for (const e of ex) if (e.source !== 'fijo') perDay[e.date] = (perDay[e.date] || 0) + e.amount;
+  const max = Math.max(0, ...Object.values(perDay));
+  const level = v => (v > 0 && max > 0 ? Math.max(1, Math.ceil(Math.sqrt(v / max) * 4)) : 0);
+  const short = v => (v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : Math.round(v)) + '€';
+  const blanks = (fromISO(p.start).getDay() + 6) % 7; // lunes primero
+  let cells = '<span class="cal-blank"></span>'.repeat(blanks);
+  for (let i = 0; i < p.days; i++) {
+    const d = addDays(p.start, i), dt = fromISO(d), v = perDay[d] || 0;
+    const label = dt.getDate() + (dt.getDate() === 1 || i === 0 ? ` ${MONTHS_S[dt.getMonth()]}` : '');
+    cells += `<button class="cal-d l${level(v)}${d === t ? ' today' : ''}${d > t ? ' future' : ''}${ui.day === d ? ' sel' : ''}" data-action="pickDay" data-d="${d}" aria-label="${niceDate(d)}: ${money(v)}">
+      <span class="n">${label}</span>${v ? `<span class="v">${short(v)}</span>` : ''}</button>`;
+  }
+  return `<section class="card"><h3>Calendario <span class="muted small">(sin gastos fijos)</span></h3>
+    <div class="cal-head">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(x => `<span>${x}</span>`).join('')}</div>
+    <div class="cal">${cells}</div>
+    <div class="cal-legend">Menos ${[1, 2, 3, 4].map(l => `<i class="l${l}"></i>`).join('')} Más</div>
+    ${weekdayInsight(t)}
+    <p class="muted small" style="margin:6px 0 0">Toca un día para ver qué gastaste.</p></section>`;
+}
+/** Qué día de la semana sueles gastar más (últimos 90 días, sin fijos). */
+function weekdayInsight(t) {
+  const from = addDays(t, -89);
+  const ex = state.expenses.filter(e => e.source !== 'fijo' && e.date >= from && e.date <= t);
+  if (!ex.length) return '';
+  const first = ex.reduce((m, e) => (e.date < m ? e.date : m), t);
+  const span = diffDays(first, t) + 1;
+  if (span < 14) return '';
+  const tot = Array(7).fill(0), n = Array(7).fill(0);
+  for (let i = 0; i < span; i++) n[fromISO(addDays(first, i)).getDay()]++;
+  for (const e of ex) tot[fromISO(e.date).getDay()] += e.amount;
+  const avg = tot.map((x, i) => (n[i] ? x / n[i] : 0));
+  const top = avg.indexOf(Math.max(...avg));
+  if (!avg[top]) return '';
+  const rest = avg.filter((_, i) => i !== top && n[i]);
+  const restAvg = rest.reduce((a, b) => a + b, 0) / (rest.length || 1);
+  return `<p class="cal-insight">📌 Tu día más caro suele ser el <b>${WEEKDAYS[top]}</b>: de media <b>${money(avg[top])}</b> (el resto de días, ${money(restAvg)}).</p>`;
 }
 
 /* =====================================================================
@@ -1368,21 +1405,91 @@ function obHTML() {
       <button class="btn primary w100" data-action="obNext">Siguiente</button>
       <button class="btn link" data-action="obSkip">Prefiero no decirlo ahora</button></div>`,
     () => {
-      const inc = s.income || 0;
-      const opts = [0, 0.1, 0.2].map(f => Math.round(inc * f / 10) * 10);
+      const inc = s.income || 0, v = s.saveGoal || 0;
       return `<div class="ob"><div class="ob-step">2 de 3</div><h2>¿Cuánto quieres ahorrar al mes?</h2>
         <p class="muted">Lo apartamos primero, como si fuera un gasto fijo. Puedes cambiarlo cuando quieras.</p>
-        ${inc ? `<div class="chips">${opts.map((v, i) => `<button class="chip" data-action="obSave" data-v="${v}">${['Nada por ahora', '10 %', '20 %'][i]}<small>${moneyR(v)}</small></button>`).join('')}</div>` : ''}
-        <div class="big-input"><input id="obSave" inputmode="decimal" placeholder="150" value="${s.saveGoal || ''}"><span>€</span></div>
+        <div class="big-input"><input id="obSave" inputmode="decimal" placeholder="0" value="${v || ''}" aria-label="Ahorro al mes"><span>€</span></div>
+        ${inc ? `<input type="range" id="obSlider" class="slider" min="0" max="${saveSliderMax(inc)}" step="5" value="${Math.min(v, saveSliderMax(inc))}" aria-label="Ahorro al mes">
+          <p class="save-info" id="obSaveInfo">${saveInfo(v, inc)}</p>
+          <div class="chips" id="obChips">${savePresets(inc).map(([l, x]) => `<button class="chip ${x === v ? 'on' : ''}" data-action="obSave" data-v="${x}">${l}<small>${moneyR(x)}</small></button>`).join('')}</div>
+          <p class="muted small">Escribe la cantidad que quieras o mueve la barra. Los botones son solo atajos.</p>`
+        : '<p class="muted small">Escribe la cantidad que quieras. Puede ser 0.</p>'}
         <button class="btn primary w100" data-action="obNext">Siguiente</button></div>`;
     },
     () => `<div class="ob"><div class="ob-step">3 de 3</div><h2>¿Qué día cobras?</h2>
-      <p class="muted">Tu "mes" empezará ese día. Si no lo tienes claro, deja el 1.</p>
-      <div class="chips">${[1, 25, 28, 30].map(d => `<button class="chip ${s.startDay === d ? 'on' : ''}" data-action="obDay" data-v="${d}">Día ${d}</button>`).join('')}</div>
+      <p class="muted">Tu "mes" empezará ese día. Desliza la ruleta.</p>
+      ${dayWheelHTML(s.startDay || 1, 'ob')}
+      <p class="muted small" id="wheelInfo">${payDayInfo(s.startDay || 1)}</p>
       <button class="btn primary w100" data-action="obFinish">¡Listo!</button></div>`,
   ];
   return steps[ob.step]();
 }
+/* ---------- Ahorro: barra + cantidad libre ---------- */
+const saveSliderMax = inc => Math.max(50, Math.round(inc * 0.5 / 10) * 10);
+const savePresets = inc => [['Nada', 0], ['5 %', .05], ['10 %', .1], ['20 %', .2]].map(([l, f]) => [l, Math.round(inc * f / 10) * 10]);
+function saveInfo(v, inc) {
+  if (!inc) return '';
+  if (v >= inc) return '⚠️ Es todo lo que cobras: no te quedaría nada para vivir.';
+  return `<b>${Math.round(v / inc * 100)} %</b> de lo que cobras · te quedan <b>${moneyR(inc - v)}</b> al mes para tus gastos`;
+}
+function obSaveChanged(v, from) {
+  v = Math.max(0, Math.round((v || 0) * 100) / 100);
+  const inc = state.settings.income || 0;
+  const input = $('#obSave'), slider = $('#obSlider'), info = $('#obSaveInfo');
+  if (input && from !== 'input') input.value = v || (from === 'chip' ? '0' : '');
+  if (slider && from !== 'slider') slider.value = Math.min(v, Number(slider.max));
+  if (info) info.innerHTML = saveInfo(v, inc);
+  $$('#obChips .chip').forEach(c => c.classList.toggle('on', Number(c.dataset.v) === v));
+}
+
+/* ---------- Ruleta de días (1–31) ---------- */
+function dayWheelHTML(v, kind) {
+  return `<div class="wheel">
+    <div class="wheel-band" aria-hidden="true"><span>día</span></div>
+    <div class="wheel-list" data-wheel="${kind}" data-value="${v}" tabindex="0" role="listbox" aria-label="Día de cobro">
+      <div class="wheel-pad"></div>
+      ${Array.from({ length: 31 }, (_, i) => `<div class="wheel-item" role="option" data-day="${i + 1}">${i + 1}</div>`).join('')}
+      <div class="wheel-pad"></div>
+    </div></div>`;
+}
+function payDayInfo(d) {
+  if (d === 1) return 'Tu mes irá del día 1 al último día de cada mes.';
+  return `Tu mes irá del día ${d} al ${d - 1} del mes siguiente.${d > 28 ? ` Si un mes no tiene día ${d}, empieza el último día de ese mes.` : ''}`;
+}
+function initWheels() {
+  $$('[data-wheel]').forEach(list => {
+    if (list.dataset.ready) return;
+    list.dataset.ready = '1';
+    const items = $$('.wheel-item', list);
+    const h = () => items[0].offsetHeight || 44;
+    const mark = d => {
+      items.forEach(it => { const on = Number(it.dataset.day) === d; it.classList.toggle('on', on); it.setAttribute('aria-selected', on); });
+    };
+    const start = Number(list.dataset.value) || 1;
+    list.scrollTop = (start - 1) * h();
+    mark(start);
+    let raf = 0;
+    list.addEventListener('scroll', () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const d = Math.min(31, Math.max(1, Math.round(list.scrollTop / h()) + 1));
+        if (d === Number(list.dataset.value)) return;
+        list.dataset.value = d; mark(d);
+        if (list.dataset.wheel === 'ob') { state.settings.startDay = d; const i = $('#wheelInfo'); if (i) i.textContent = payDayInfo(d); }
+      });
+    });
+    list.addEventListener('click', e => {
+      const it = e.target.closest('.wheel-item');
+      if (it) list.scrollTo({ top: (Number(it.dataset.day) - 1) * h(), behavior: 'smooth' });
+    });
+    list.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      list.scrollBy({ top: e.key === 'ArrowUp' ? -h() : h(), behavior: 'smooth' });
+    });
+  });
+}
+
 function obReadInputs() {
   const inc = $('#obIncome'), sv = $('#obSave');
   if (inc) { const v = parseAmount(inc.value); state.settings.income = v > 0 ? v : 0; }
@@ -1717,7 +1824,12 @@ const actions = {
     checkBadges();
   },
   dismiss: el => { state.dismissed[el.dataset.k] = true; save(); render(); },
-  month: el => { ui.monthOffset = Math.min(0, ui.monthOffset + Number(el.dataset.d)); ui.cat = null; render(); },
+  month: el => { ui.monthOffset = Math.min(0, ui.monthOffset + Number(el.dataset.d)); ui.cat = null; ui.day = null; render(); },
+  pickDay: el => {
+    ui.day = ui.day === el.dataset.d ? null : el.dataset.d;
+    render();
+    if (ui.day) $('#movs')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  },
   filterCat: el => { ui.cat = ui.cat === el.dataset.cat ? null : el.dataset.cat; render(); },
   openSettings: () => openSheet(settingsHTML(), 'settings'),
   addRecurring: () => addRecurring(),
@@ -1791,8 +1903,7 @@ const actions = {
   // Bienvenida
   obNext: () => { obReadInputs(); ob.step++; setSheet(obHTML()); },
   obSkip: () => { ob.step = 3; setSheet(obHTML()); },
-  obSave: el => { $('#obSave').value = el.dataset.v; },
-  obDay: el => { state.settings.startDay = Number(el.dataset.v); setSheet(obHTML()); },
+  obSave: el => obSaveChanged(Number(el.dataset.v), 'chip'),
   obFinish: () => {
     state.settings.onboarded = true;
     state.settings.startedOn = state.settings.startedOn || todayISO();
@@ -1804,13 +1915,15 @@ const actions = {
 document.addEventListener('click', e => {
   if (e.target.id === 'addDate' && e.target.showPicker) { try { e.target.showPicker(); } catch (err) { /* iOS lo abre solo */ } }
   const tab = e.target.closest('[data-tab]');
-  if (tab) { ui.tab = tab.dataset.tab; ui.cat = null; render(); window.scrollTo({ top: 0 }); return; }
+  if (tab) { ui.tab = tab.dataset.tab; ui.cat = null; ui.day = null; render(); window.scrollTo({ top: 0 }); return; }
   const el = e.target.closest('[data-action]');
   if (el && actions[el.dataset.action]) actions[el.dataset.action](el);
 });
 
 document.addEventListener('input', e => {
   if (e.target.id === 'note') updateSuggest();
+  if (e.target.id === 'obSave') obSaveChanged(parseAmount(e.target.value), 'input');
+  if (e.target.id === 'obSlider') obSaveChanged(Number(e.target.value), 'slider');
   const rv = e.target.closest('[data-rv]');
   if (rv && review) {
     const it = review.items[Number(rv.closest('.rv').dataset.i)];
