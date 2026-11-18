@@ -57,7 +57,7 @@ const BADGES = [
   { id: 'backup', emoji: '💾', name: 'Precavido', desc: 'Haz una copia de seguridad' },
 ];
 
-const SRC_ICON = { ocr: ' · 📸', fijo: ' · 🔁 fijo', csv: ' · 🏦', paste: ' · 📋', wish: ' · ⏳' };
+const SRC_ICON = { ia: ' · ✨', ocr: ' · 📸', fijo: ' · 🔁 fijo', csv: ' · 🏦', paste: ' · 📋', wish: ' · ⏳' };
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const MONTHS_S = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -457,7 +457,7 @@ const BADGE_RULES = {
   streak30: () => streak() >= 30,
   nospend1: () => noSpendDays().length >= 1,
   nospend5: () => { const p = periodRange(0); return noSpendDays().filter(d => d >= p.start && d <= p.end).length >= 5; },
-  capture: () => state.expenses.some(e => e.source === 'ocr'),
+  capture: () => state.expenses.some(e => e.source === 'ocr' || e.source === 'ia'),
   goal: () => state.goals.length > 0,
   goaldone: () => state.goals.some(g => g.saved >= g.target),
   resist: () => state.wishlist.some(w => w.status === 'resisted'),
@@ -870,7 +870,7 @@ function addHTML() {
   return `
     <div class="sheet-head">
       <div class="add-tools">
-        ${add.editId ? '<b>Editar gasto</b>' : '<button class="pill" data-action="capture">📸 Desde captura</button><button class="pill" data-action="pasteText">📋 Pegar</button>'}
+        ${add.editId ? '<b>Editar gasto</b>' : '<button class="pill ai-pill" data-action="aiOpen">✨ Asistente</button><button class="pill" data-action="capture">📸 Captura</button><button class="pill" data-action="pasteText">📋 Pegar</button>'}
       </div>
       <button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">✕</button>
     </div>
@@ -1094,6 +1094,7 @@ function reviewHTML() {
   const n = review.items.filter(i => i.checked).length;
   const dups = review.items.filter(i => i.dup).length;
   return `${sheetHead(`He encontrado ${review.items.length} ${review.items.length === 1 ? 'gasto' : 'gastos'}`)}
+    ${review.source === 'ia' ? '<button class="btn link" data-action="aiOpen" style="margin:-6px 0 6px;padding-left:0">← Volver a la conversación</button>' : ''}
     <p class="muted small">Revisa y corrige lo que haga falta. Solo se guardan los marcados.
     ${review.incomes ? `He ignorado ${review.incomes} ${review.incomes === 1 ? 'ingreso' : 'ingresos'}.` : ''} ${dups ? `<b>${dups} parecen repetidos</b> (ya estaban apuntados) y los he desmarcado.` : ''}</p>
     <div class="btn-row" style="margin-bottom:10px"><button class="btn sm ghost" data-action="rvAll" data-v="1">Marcar todos</button><button class="btn sm ghost" data-action="rvAll" data-v="0">Ninguno</button></div>
@@ -1115,6 +1116,7 @@ function reviewSave() {
     state.expenses.push(e); ids.push(e.id);
     if (it.note) learn(it.note, it.cat);
   }
+  if (review.source === 'ia') ai = null;   // conversación terminada
   save(); closeSheet(); render();
   toast(`${chosen.length} ${chosen.length === 1 ? 'gasto guardado' : 'gastos guardados'}`, { undo: () => { state.expenses = state.expenses.filter(e => !ids.includes(e.id)); } });
   checkBadges();
@@ -1270,6 +1272,13 @@ function settingsHTML() {
     <div class="section-title">Importar del banco</div>
     <p class="muted small">Descarga tus movimientos en CSV o Excel desde la web de tu banco y súbelos aquí. Detecto repetidos para que no se dupliquen.</p>
     <button class="btn ghost w100" data-action="importBank">🏦 Importar movimientos (CSV / Excel)</button>
+
+    <div class="section-title">Asistente con IA ✨</div>
+    ${aiCfg.key
+      ? `<p class="muted small">Activo en este dispositivo. Gastado hasta ahora: <b>${aiSpentText()}</b> (cálculo aproximado; el real lo ves en <a href="${AI_CONSOLE}/settings/billing" target="_blank" rel="noopener">platform.claude.com</a>).</p>
+        <div class="btn-row"><button class="btn ghost" data-action="aiOpen">✨ Abrir asistente</button><button class="btn ghost" data-action="aiForget">Quitar llave</button></div>`
+      : `<p class="muted small">Mándale capturas del banco y explícale de palabra qué es cada cosa; te pregunta lo que no sepa. Cuesta céntimos al mes.</p>
+        <button class="btn ghost w100" data-action="aiOpen">✨ Activar asistente</button>`}
 
     ${syncSettingsBlock()}
 
@@ -1778,6 +1787,266 @@ function closeSyncSheet() {
 }
 
 /* =====================================================================
+   Asistente con IA (Claude Haiku): capturas + explicación → gastos.
+   La llave se guarda SOLO en este dispositivo y solo se envía a Anthropic.
+   ===================================================================== */
+const AI_STORE = 'hucha.ai';                 // { key, usd } (no se sincroniza)
+const AI_MODEL = 'claude-haiku-5-5';
+const AI_SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm';
+const AI_CONSOLE = 'https://platform.claude.com';
+const AI_PRICE = { in: 0.10, out: 0.50 };    // $ por millón de tokens (Haiku 5.5, peticiones ≤ 100K)
+const AI_MAX_IMGS = 6;
+const aiCfg = readJSON(AI_STORE) || {};
+let ai = null;                               // conversación abierta
+let aiSdkPromise = null;
+
+const AI_CAT_HINTS = {
+  super: 'Mercadona, Spar, Suma, Lidl, fruterías, panaderías',
+  casa: 'alquiler, luz, agua, internet, móvil, cosas para la casa',
+  transporte: 'gasolina, guagua/bus, taxi, parking, Uber',
+  salud: 'farmacia, médico, dentista, óptica, fisio',
+  comer: 'restaurantes, bares, cenas fuera',
+  delivery: 'Glovo, Just Eat, Uber Eats',
+  cafe: 'cafeterías, snacks, heladerías',
+  ocio: 'cine, conciertos, planes, juegos, libros',
+  compras: 'ropa, Amazon, bazares, tecnología, peluquería, regalos',
+  subs: 'suscripciones mensuales, gimnasio, cursos online pagados a plazos',
+  viajes: 'vuelos, hoteles, Airbnb',
+  otros: 'lo que no encaje (copias, trámites, comisiones…)',
+};
+const AI_SYSTEM = `Eres el asistente de Hucha, una app de control de gastos pensada para personas con TDAH. El usuario te manda capturas (app del banco, tickets, notificaciones) y/o te explica sus gastos con palabras, a menudo dictadas (puede haber errores de dictado).
+
+Tu trabajo: sacar la lista de GASTOS para apuntarlos.
+- Solo gastos (dinero que sale). Deja fuera ingresos, abonos, transferencias recibidas, nóminas y devoluciones, y dilo en el mensaje en pocas palabras.
+- importe: positivo, en euros (62.03).
+- fecha: AAAA-MM-DD. Las apps del banco ponen "Hoy", "Lunes 16" o "Viernes 13" sin año: deduce el mes y el año con la fecha de hoy y las cabeceras (p. ej. "Noviembre"). Nunca pongas fechas futuras.
+- Si las capturas se solapan, no repitas un movimiento (misma fecha, importe y comercio = uno solo).
+- concepto: corto y claro. Quita "Compra Tarj.", números de tarjeta (5402..2010) y la ciudad. Ej.: "Mercadona", "Peluquería Figueroa y Guerra", "Bizum a Josep (cena)".
+- categoria: una de la lista. Lo que diga el usuario manda sobre lo que tú supongas.
+- Pregunta SOLO lo que no puedas deducir y cambie la categoría o el importe: típico en Bizums enviados, pagos financiados o a plazos (Sequra, Aplazame, Klarna…), comercios que no reconoces o importes ilegibles. Máximo 3 preguntas a la vez, cada una con 2–4 opciones muy cortas (nombres de categoría, "No es un gasto"…). Mientras, incluye ese gasto con tu mejor suposición.
+- Si el usuario dice que algo no es un gasto, quítalo de la lista.
+- Devuelve SIEMPRE la lista completa y actualizada de toda la conversación, no solo lo nuevo.
+- mensaje: 1–2 frases en español de España, tono cercano, sin sermones ni markdown.
+
+Categorías (id: nombre — ejemplos):
+${CATS.map(c => `${c.id}: ${c.name} — ${AI_CAT_HINTS[c.id] || ''}`).join('\n')}`;
+
+const AI_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['mensaje', 'gastos', 'preguntas'],
+  properties: {
+    mensaje: { type: 'string' },
+    gastos: { type: 'array', items: {
+      type: 'object', additionalProperties: false, required: ['fecha', 'importe', 'concepto', 'categoria'],
+      properties: { fecha: { type: 'string' }, importe: { type: 'number' }, concepto: { type: 'string' }, categoria: { type: 'string', enum: CATS.map(c => c.id) } },
+    } },
+    preguntas: { type: 'array', items: {
+      type: 'object', additionalProperties: false, required: ['pregunta', 'opciones'],
+      properties: { pregunta: { type: 'string' }, opciones: { type: 'array', items: { type: 'string' } } },
+    } },
+  },
+};
+
+function aiSdk() {
+  if (!aiSdkPromise) aiSdkPromise = import(AI_SDK_URL).then(m => m.default).catch(e => { aiSdkPromise = null; throw e; });
+  return aiSdkPromise;
+}
+async function aiClient(key = aiCfg.key) {
+  const Anthropic = await aiSdk();
+  return { Anthropic, client: new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 2 }) };
+}
+function aiErrorText(err, Anthropic) {
+  if (!Anthropic) return 'No he podido cargar el asistente. ¿Tienes conexión?';
+  if (err instanceof Anthropic.AuthenticationError) return 'La llave no es válida. Revisa que la has copiado entera.';
+  if (err instanceof Anthropic.PermissionDeniedError) return 'Esa llave no tiene permiso. Crea una nueva en platform.claude.com.';
+  if (err instanceof Anthropic.RateLimitError) return 'Demasiadas peticiones seguidas. Espera un minuto y vuelve a probar.';
+  if (err instanceof Anthropic.BadRequestError) return 'Anthropic ha rechazado la petición. Si es una cuenta nueva, revisa que tengas saldo (Billing).';
+  if (err instanceof Anthropic.APIConnectionError) return 'Sin conexión. Prueba otra vez cuando tengas internet.';
+  if (err instanceof Anthropic.APIError) return 'Anthropic no responde ahora mismo. Prueba en un rato.';
+  return 'Algo ha fallado. Prueba otra vez.';
+}
+function aiAddUsage(u) {
+  if (!u) return;
+  const inTok = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) * 1.25 + (u.cache_read_input_tokens || 0) * 0.1;
+  aiCfg.usd = (aiCfg.usd || 0) + (inTok * AI_PRICE.in + (u.output_tokens || 0) * AI_PRICE.out) / 1e6;
+  writeJSON(AI_STORE, aiCfg);
+}
+const aiSpentText = () => {
+  const usd = aiCfg.usd || 0;
+  return usd < 0.01 ? 'menos de 1 céntimo' : `≈ ${usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
+};
+
+/** Reduce la captura (lado largo ≤ 1568 px, JPEG) para que pese y cueste menos. */
+async function shrinkImage(file, max = 1568) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, 0, 0, c.width, c.height);
+    const dataUrl = c.toDataURL('image/jpeg', 0.85);
+    return { dataUrl, b64: dataUrl.split(',')[1] };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function aiOpen() {
+  if (!aiCfg.key) { openSheet(aiSetupHTML(), 'ai'); return; }
+  if (!ai) ai = { msgs: [], log: [], pending: [], gastos: [], preguntas: [], answers: {}, draft: '', busy: false, error: '' };
+  openSheet(aiHTML(), 'ai');
+  aiScroll();
+}
+function aiRender() { if (sheetKind === 'ai' && ai) { setSheet(aiHTML()); aiScroll(); } }
+function aiScroll() { const s = $('.sheet'); if (s) s.scrollTop = s.scrollHeight; }
+
+function aiSetupHTML() {
+  return `${sheetHead('✨ Activar el asistente')}
+    <p class="muted small">Le mandas capturas, le explicas qué es cada cosa y él te pregunta lo que no sepa. Usa Claude Haiku, de Anthropic: pagas tú directamente lo que gastes (céntimos al mes), sin suscripción.</p>
+    <ol class="steps">
+      <li>Entra en <a href="${AI_CONSOLE}" target="_blank" rel="noopener"><b>platform.claude.com</b></a> y crea una cuenta. Es distinta de la suscripción de Claude.</li>
+      <li>En <a href="${AI_CONSOLE}/settings/billing" target="_blank" rel="noopener"><b>Billing</b></a>, añade tu tarjeta y compra un poco de saldo (con 5 $ tienes para muchísimo).</li>
+      <li>En <a href="${AI_CONSOLE}/settings/keys" target="_blank" rel="noopener"><b>API keys</b></a>, toca <b>Create key</b>, llámala "Hucha" y copia la llave (empieza por <code>sk-ant-</code>).</li>
+      <li>Pégala aquí:</li>
+    </ol>
+    <label class="field"><span>Llave de Anthropic</span><input id="aiKeyIn" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…"></label>
+    <button class="btn primary w100" data-action="aiSaveKey">Activar</button>
+    <p class="muted small">🔒 La llave se guarda solo en este dispositivo (no se sincroniza) y solo se envía a Anthropic. Las capturas y lo que escribas también se envían a Anthropic para leerlas.</p>`;
+}
+async function aiSaveKey() {
+  const key = ($('#aiKeyIn')?.value || '').trim();
+  if (!/^sk-ant-/.test(key)) { toast('La llave empieza por sk-ant-'); return; }
+  const btn = $('[data-action="aiSaveKey"]');
+  btn.disabled = true; btn.textContent = 'Comprobando…';
+  let Anthropic = null;
+  try {
+    const c = await aiClient(key);
+    Anthropic = c.Anthropic;
+    await c.client.models.retrieve(AI_MODEL);   // no gasta saldo: solo comprueba que la llave funciona
+    aiCfg.key = key; writeJSON(AI_STORE, aiCfg);
+    toast('✨ Asistente activado');
+    aiOpen();
+  } catch (err) {
+    toast(aiErrorText(err, Anthropic));
+    btn.disabled = false; btn.textContent = 'Activar';
+  }
+}
+
+function aiHTML() {
+  const a = ai;
+  const bubbles = a.log.map(m => `<div class="ai-msg ${m.me ? 'me' : 'bot'}">${m.imgs?.length ? `<div class="ai-mini">${m.imgs.map(u => `<img src="${u}" alt="">`).join('')}</div>` : ''}${m.text ? `<div>${esc(m.text).replace(/\n/g, '<br>')}</div>` : ''}</div>`).join('');
+  const qs = !a.busy ? a.preguntas.map((q, i) => `<div class="ai-q"><p>${esc(q.pregunta)}</p><div class="ai-opts">${q.opciones.map((o, j) => `<button class="chip ${a.answers[i] === o ? 'on' : ''}" data-action="aiOpt" data-q="${i}" data-o="${j}">${esc(o)}</button>`).join('')}</div></div>`).join('') : '';
+  const n = a.gastos.length;
+  return `${sheetHead('✨ Asistente')}
+    <div class="ai-log" id="aiLog">
+      ${a.log.length ? '' : `<div class="ai-msg bot">Mándame capturas del banco o de un ticket y, si quieres, explícame qué es cada cosa. Si algo no lo tengo claro, te pregunto.</div>`}
+      ${bubbles}${qs}
+      ${a.busy ? '<div class="ai-msg bot typing">Mirando…</div>' : ''}
+      ${a.error ? `<div class="ai-msg bot err">😕 ${esc(a.error)}</div>` : ''}
+    </div>
+    ${n && !a.busy ? `<div class="ai-found"><span><b>${n} ${n === 1 ? 'gasto listo' : 'gastos listos'}</b><br><span class="muted small">${money(a.gastos.reduce((s, g) => s + g.importe, 0))} en total</span></span><button class="btn primary" data-action="aiReview">Revisar y guardar</button></div>` : ''}
+    <div class="ai-compose">
+      ${a.pending.length ? `<div class="ai-thumbs">${a.pending.map((p, i) => `<span><img src="${p.dataUrl}" alt="Captura ${i + 1}"><button data-action="aiDropImg" data-i="${i}" aria-label="Quitar captura">✕</button></span>`).join('')}</div>` : ''}
+      <textarea id="aiText" rows="2" placeholder="${a.preguntas.length ? 'Respóndele o explícale algo más…' : 'Escribe o dicta con el 🎤 del teclado…'}">${esc(a.draft)}</textarea>
+      <div class="btn-row">
+        <button class="btn ghost" data-action="aiPick" ${a.busy ? 'disabled' : ''}>📎 Capturas</button>
+        <button class="btn primary" data-action="aiSend" ${a.busy ? 'disabled' : ''}>Enviar</button>
+      </div>
+      <p class="muted small ai-foot">Gastado con el asistente: ${aiSpentText()}${a.log.length ? ' · <button class="btn link" data-action="aiReset">Empezar de nuevo</button>' : ''}</p>
+    </div>`;
+}
+
+async function aiAddFiles(files) {
+  if (!ai) return;
+  const room = AI_MAX_IMGS - ai.pending.length;
+  if (files.length > room) toast(`Como mucho ${AI_MAX_IMGS} capturas a la vez`);
+  for (const f of files.slice(0, Math.max(0, room))) {
+    try { ai.pending.push(await shrinkImage(f)); } catch (e) { toast('No he podido abrir una imagen'); }
+  }
+  aiRender();
+}
+
+function aiTodayText() {
+  const t = todayISO(), d = fromISO(t);
+  return `Hoy es ${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()} (${t}).`;
+}
+
+async function aiSend() {
+  const a = ai;
+  if (!a || a.busy) return;
+  a.draft = $('#aiText')?.value ?? a.draft;
+  const answered = a.preguntas.map((q, i) => (a.answers[i] ? `- ${q.pregunta} → ${a.answers[i]}` : '')).filter(Boolean);
+  if (!a.pending.length && !a.draft.trim() && !answered.length) { toast('Añade una captura o escribe algo'); return; }
+
+  let text = a.msgs.length ? '' : aiTodayText() + '\n';
+  if (answered.length) text += 'Respuestas:\n' + answered.join('\n') + '\n';
+  if (a.draft.trim()) text += a.draft.trim();
+  if (!a.draft.trim() && !answered.length) text += 'Saca los gastos de estas capturas.';
+  const content = [
+    ...a.pending.map(p => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.b64 } })),
+    { type: 'text', text: text.trim() },
+  ];
+  const shown = { me: true, imgs: a.pending.map(p => p.dataUrl), text: [answered.map(l => l.replace(/^- .*? → /, '')).join(', '), a.draft.trim()].filter(Boolean).join('\n') };
+  const sent = { pending: a.pending, draft: a.draft, answers: a.answers };
+  a.log.push(shown);
+  a.pending = []; a.draft = ''; a.answers = {}; a.busy = true; a.error = '';
+  aiRender();
+
+  let Anthropic = null;
+  try {
+    const c = await aiClient();
+    Anthropic = c.Anthropic;
+    const msgs = [...a.msgs, { role: 'user', content }];
+    const res = await c.client.messages.create({
+      model: AI_MODEL,
+      max_tokens: 16000,
+      system: AI_SYSTEM,
+      messages: msgs,
+      cache_control: { type: 'ephemeral' },
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: AI_SCHEMA } },
+    });
+    aiAddUsage(res.usage);
+    if (res.stop_reason === 'refusal') throw Object.assign(new Error('refusal'), { hucha: 'Esto no lo puedo procesar. Prueba con otra captura o escríbemelo.' });
+    if (res.stop_reason === 'max_tokens') throw Object.assign(new Error('max_tokens'), { hucha: 'Eran demasiadas cosas de golpe. Prueba con menos capturas.' });
+    const block = res.content.find(b => b.type === 'text');
+    const out = JSON.parse(block?.text || '');
+    a.msgs = [...msgs, { role: 'assistant', content: res.content }];
+    a.gastos = (out.gastos || []).filter(g => isFinite(g.importe) && Math.abs(g.importe) > 0).map(g => ({ ...g, importe: Math.round(Math.abs(g.importe) * 100) / 100 }));
+    a.preguntas = (out.preguntas || []).filter(q => q.pregunta && q.opciones?.length).slice(0, 3);
+    a.log.push({ me: false, text: out.mensaje || (a.gastos.length ? 'Listo.' : 'No he encontrado gastos.') });
+  } catch (err) {
+    a.log.pop();
+    Object.assign(a, sent);
+    a.error = err.hucha || (err instanceof SyntaxError ? 'No he entendido la respuesta. Prueba otra vez.' : aiErrorText(err, Anthropic));
+    if (Anthropic && err instanceof Anthropic.AuthenticationError) { delete aiCfg.key; writeJSON(AI_STORE, aiCfg); }
+  }
+  a.busy = false;
+  if (ai === a) aiRender();
+}
+
+function aiOpt(el) {
+  const a = ai, q = Number(el.dataset.q), o = a.preguntas[q]?.opciones[Number(el.dataset.o)];
+  if (o == null || a.busy) return;
+  a.draft = $('#aiText')?.value ?? a.draft;
+  if (a.answers[q] === o) delete a.answers[q]; else a.answers[q] = o;
+  // Respondidas todas y sin nada escrito → se envía sola (un toque menos)
+  if (a.preguntas.every((_, i) => a.answers[i]) && !a.draft.trim() && !a.pending.length) aiSend();
+  else aiRender();
+}
+
+function aiReview() {
+  const t = todayISO();
+  const existing = new Set(state.expenses.map(e => e.date + '|' + e.amount.toFixed(2)));
+  const items = ai.gastos.map(g => {
+    const iso = parseDateStrict(g.fecha);
+    const date = iso && iso <= t ? iso : t;
+    const dup = existing.has(date + '|' + g.importe.toFixed(2));
+    return { amount: g.importe, note: g.concepto || '', date, cat: CAT[g.categoria] ? g.categoria : 'otros', dup, checked: !dup };
+  });
+  openReview(items, 'ia');
+}
+
+/* =====================================================================
    Eventos (delegados)
    ===================================================================== */
 const actions = {
@@ -1816,6 +2085,20 @@ const actions = {
   pasteGo: () => { const r = textToItems($('#pasteArea').value); handleParsed(r, 'paste'); },
   rvAll: el => { review.items.forEach(i => { i.checked = el.dataset.v === '1'; }); setSheet(reviewHTML()); },
   rvSave: () => reviewSave(),
+  // Asistente con IA
+  aiOpen: () => aiOpen(),
+  aiSaveKey: () => aiSaveKey(),
+  aiSend: () => aiSend(),
+  aiOpt: el => aiOpt(el),
+  aiPick: () => { if (ai) ai.draft = $('#aiText')?.value ?? ai.draft; $('#fileAi').click(); },
+  aiDropImg: el => { ai.draft = $('#aiText')?.value ?? ai.draft; ai.pending.splice(Number(el.dataset.i), 1); aiRender(); },
+  aiReview: () => aiReview(),
+  aiReset: () => { ai = null; aiOpen(); },
+  aiForget: () => {
+    if (!confirm('¿Quitar la llave del asistente de este dispositivo? Para volver a usarlo tendrás que pegarla otra vez.')) return;
+    delete aiCfg.key; writeJSON(AI_STORE, aiCfg); ai = null;
+    setSheet(settingsHTML()); toast('Llave quitada');
+  },
   noSpendToday: () => {
     const t = todayISO();
     if (!state.noSpend.includes(t)) state.noSpend.push(t);
@@ -1848,6 +2131,7 @@ const actions = {
     if (!confirm('¿Borrar TODOS tus datos de este dispositivo? No se puede deshacer (salvo que tengas una copia).')) return;
     if (!confirm('¿Seguro del todo?')) return;
     sync.cfg = null; clearTimeout(sync.timer); writeJSON(SYNC_KEY, null); writeJSON(SYNC_BASE_KEY, null); // la copia en la nube no se toca
+    delete aiCfg.key; delete aiCfg.usd; writeJSON(AI_STORE, null); ai = null;
     state = DEFAULT(); save(); closeSheet(); applyTheme(); render();
     ob = { step: 0 }; openSheet(obHTML(), 'onboard');
   },
@@ -1924,6 +2208,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'note') updateSuggest();
   if (e.target.id === 'obSave') obSaveChanged(parseAmount(e.target.value), 'input');
   if (e.target.id === 'obSlider') obSaveChanged(Number(e.target.value), 'slider');
+  if (e.target.id === 'aiText' && ai) ai.draft = e.target.value;
   const rv = e.target.closest('[data-rv]');
   if (rv && review) {
     const it = review.items[Number(rv.closest('.rv').dataset.i)];
@@ -1958,6 +2243,7 @@ document.addEventListener('change', e => {
 $('#fileImg').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) runOCR(f); });
 $('#fileBank').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBank(f); });
 $('#fileJson').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackupFile(f); });
+$('#fileAi').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) aiAddFiles(fs); });
 
 // Teclado físico (Mac): números, coma, borrar, Enter en la nota, Escape
 document.addEventListener('keydown', e => {
