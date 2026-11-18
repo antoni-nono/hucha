@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hucha</title>
+  <meta name="description" content="Tu control de gastos mensual, sencillo y pensado para cerebros con TDAH.">
+  <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Hucha">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div id="topTitle" class="top-title"></div>
+    <button class="icon-btn" data-action="openSettings" aria-label="Ajustes">⚙️</button>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar" aria-label="Secciones">
+    <button data-tab="hoy"><span aria-hidden="true">🏠</span>Hoy</button>
+    <button data-tab="mes"><span aria-hidden="true">📊</span>Mes</button>
+    <button class="fab" data-action="openAdd" aria-label="Apuntar gasto">+</button>
+    <button data-tab="ahorro"><span aria-hidden="true">💡</span>Ahorro</button>
+    <button data-tab="metas"><span aria-hidden="true">🎯</span>Metas</button>
+  </nav>
+
+  <div id="sheetRoot" class="sheet-root"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="celebrate" class="celebrate" role="status" aria-live="polite"></div>
+
+  <input type="file" id="fileImg" accept="image/*" hidden>
+  <input type="file" id="fileBank" accept=".csv,.txt,.xls,.xlsx,text/csv" hidden>
+  <input type="file" id="fileJson" accept=".json,application/json" hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>
