@@ -436,3 +436,28 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 /* Modo calma: sin animaciones ni confeti */
 html.calm *, html.calm *::before, html.calm *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 html.calm .confetti { display: none; }
+
+/* ---------- Revisión semanal ---------- */
+.wk-review { text-align: center; padding: 4px 2px; }
+.wk-review h2 { margin-bottom: 10px; }
+.wk-review > .btn.primary { margin-top: 18px; }
+.week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 120px; align-items: end; margin: 18px 4px 4px; }
+.week-bars > div { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 6px; }
+.week-bars i { display: block; width: 100%; max-width: 30px; border-radius: 8px; background: var(--accent); }
+.week-bars span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.week-cats { display: grid; gap: 14px; text-align: left; margin-top: 14px; }
+.week-cat { display: flex; align-items: center; gap: 12px; }
+.week-cat .ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; flex: none; }
+.week-cat .grow { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.week-cat .bar { height: 8px; }
+.week-wins { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 10px; text-align: left; }
+.week-wins li { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 16px; background: var(--good-soft); font-weight: 600; }
+.week-wins li span:first-child { font-size: 24px; }
+.week-opts { display: grid; gap: 10px; margin-top: 10px; }
+.week-opt { padding: 14px 16px; border-radius: 16px; border: 2px solid var(--line); text-align: left; font-weight: 600; min-height: 52px; }
+.week-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.week-goal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.week-goal-head .btn.link { width: auto; min-height: 0; padding: 4px 0; font-size: 14px; flex: none; }
+.week-dots { display: flex; gap: 8px; margin: 12px 0 8px; }
+.week-dots i { width: 28px; height: 28px; border-radius: 50%; background: var(--track); display: block; }
+.week-dots i.on { background: var(--accent); }

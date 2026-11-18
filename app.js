@@ -207,6 +207,7 @@ const DEFAULT = () => ({
   badges: {},
   resistedTotal: 0,
   dismissed: {},
+  weekly: {},     // { lunesISO: { done, goal } } revisión semanal
 });
 
 function load() {
@@ -327,6 +328,137 @@ function streak() {
 function noSpendDays() {
   const spentDays = new Set(state.expenses.filter(e => e.source !== 'fijo').map(e => e.date));
   return state.noSpend.filter(d => !spentDays.has(d));
+}
+
+/* =====================================================================
+   Revisión semanal (1 minuto): cómo fue la semana pasada + una intención.
+   Semanas de lunes a domingo. Sin gastos fijos: así se ven los hábitos.
+   ===================================================================== */
+const weekStart = (iso = todayISO()) => addDays(iso, -((fromISO(iso).getDay() + 6) % 7));
+const habitExp = (from, to) => state.expenses.filter(e => e.source !== 'fijo' && e.date >= from && e.date <= to);
+const round5 = n => Math.max(5, Math.round(n / 5) * 5);
+
+function weekStats(mon) {
+  const sun = addDays(mon, 6), list = habitExp(mon, sun);
+  const byCat = {};
+  list.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.amount; });
+  const perDay = [...Array(7)].map((_, i) => { const d = addDays(mon, i); return { d, v: sum(list.filter(e => e.date === d)) }; });
+  const logged = loggedDays();
+  const zenSet = new Set(noSpendDays());
+  const resisted = state.wishlist.filter(w => w.status === 'resisted' && w.decided && (d => d >= mon && d <= sun)(toISO(new Date(w.decided))));
+  return {
+    mon, sun, list, total: sum(list),
+    cats: Object.entries(byCat).sort((a, b) => b[1] - a[1]),
+    perDay,
+    zen: perDay.filter(x => zenSet.has(x.d)).length,
+    active: perDay.filter(x => logged.has(x.d)).length,
+    resisted,
+  };
+}
+const weekLabel = mon => {
+  const a = fromISO(mon), b = fromISO(addDays(mon, 6));
+  return a.getMonth() === b.getMonth() ? `${a.getDate()}–${b.getDate()} ${MONTHS_S[b.getMonth()]}` : `${a.getDate()} ${MONTHS_S[a.getMonth()]} – ${b.getDate()} ${MONTHS_S[b.getMonth()]}`;
+};
+
+/** Intenciones posibles para esta semana, a partir de cómo fue la pasada. */
+function weekGoalOptions(w) {
+  const opts = [];
+  if (w.total > 0) { const limit = round5(w.total * 0.9); opts.push({ type: 'total', limit, label: `Gastar menos de ${limit} € esta semana` }); }
+  const want = w.cats.find(([c, v]) => catOf(c).type === 'want' && v >= 10);
+  if (want) { const limit = round5(want[1] * 0.75); opts.push({ type: 'cat', cat: want[0], limit, label: `Menos de ${limit} € en ${catOf(want[0]).name.toLowerCase()}` }); }
+  const n = Math.min(3, w.zen + 1);
+  opts.push({ type: 'zen', target: n, label: `${n} ${n === 1 ? 'día' : 'días'} sin gastar` });
+  return opts;
+}
+function weekGoalProgress(g, mon = weekStart()) {
+  const t = todayISO();
+  if (g.type === 'zen') { const v = noSpendDays().filter(d => d >= mon && d <= t).length; return { v, max: g.target, done: v >= g.target }; }
+  const v = sum(habitExp(mon, t).filter(e => g.type !== 'cat' || e.cat === g.cat));
+  return { v, max: g.limit, over: v > g.limit };
+}
+
+function weeklyCardHTML() {
+  const mon = weekStart(), wk = state.weekly[mon];
+  if (!wk?.done) {
+    if (state.dismissed['week' + mon]) return '';
+    const w = weekStats(addDays(mon, -7));
+    if (!w.list.length && !w.zen) return '';   // la semana pasada no hubo nada que revisar
+    return `<div class="card hint">🗓️ <b>Tu semana en 1 minuto</b><br><span class="muted small">Cómo fue la semana pasada y, si quieres, una pequeña intención para esta.</span>
+      <div style="margin-top:10px"><button class="btn sm primary" data-action="weekOpen">Empezar</button></div>
+      <button class="x" data-action="dismiss" data-k="week${mon}" aria-label="Ahora no">✕</button></div>`;
+  }
+  if (!wk.goal) return '';
+  const g = wk.goal, p = weekGoalProgress(g, mon);
+  let body;
+  if (g.type === 'zen') {
+    body = `<div class="week-dots">${[...Array(g.target)].map((_, i) => `<i class="${i < p.v ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="muted small">${p.done ? '¡Conseguido! ✨' : `Llevas ${p.v} de ${g.target}. Marca "Hoy no he gastado nada" cuando toque.`}</div>`;
+  } else {
+    body = `<div class="bar" style="margin:10px 0 6px"><i style="width:${Math.min(100, p.v / p.max * 100)}%;${p.over ? 'background:var(--warn)' : ''}"></i></div>
+      <div class="muted small">${p.over ? `Te has pasado ${money(p.v - p.max)}. No pasa nada: lo importante es saberlo 💛` : `Llevas ${money(p.v)} · te quedan ${money(p.max - p.v)}`}</div>`;
+  }
+  return `<section class="card"><div class="week-goal-head"><b>🎯 Esta semana: ${esc(g.label)}</b><button class="btn link" data-action="weekOpen">Ver resumen</button></div>${body}</section>`;
+}
+
+let wkr = null;   // revisión abierta
+function weekOpen() {
+  const mon = weekStart(), w = weekStats(addDays(mon, -7));
+  const options = weekGoalOptions(w), cur = state.weekly[mon]?.goal;
+  const pick = cur ? options.findIndex(o => o.type === cur.type) : -1;
+  wkr = { step: 0, mon, w, prev: weekStats(addDays(mon, -14)), options, pick: state.weekly[mon]?.done && !cur ? 'none' : pick };
+  openSheet(weekHTML(), 'week');
+}
+function weekWins(w, prev) {
+  const wins = [];
+  if (prev.total > 0 && w.total < prev.total - 1) wins.push(['📉', `${moneyR(prev.total - w.total)} menos que la semana anterior`]);
+  if (w.zen) wins.push(['✨', `${w.zen} ${w.zen === 1 ? 'día' : 'días'} sin gastar`]);
+  if (w.resisted.length) wins.push(['🛡️', `Resististe ${w.resisted.length === 1 ? 'un antojo' : w.resisted.length + ' antojos'} (${moneyR(sum(w.resisted.map(x => ({ amount: x.price }))))})`]);
+  if (w.active >= 4) wins.push(['📝', `Apuntaste tus gastos ${w.active} de 7 días`]);
+  const calm = w.perDay.filter(x => x.v > 0).sort((a, b) => a.v - b.v)[0];
+  if (calm && wins.length < 3 && w.perDay.filter(x => x.v > 0).length > 1) wins.push(['🌿', `Tu día más tranquilo: el ${WEEKDAYS[fromISO(calm.d).getDay()]} (${money(calm.v)})`]);
+  return wins.slice(0, 3);
+}
+function weekHTML() {
+  const { step, w, prev, options } = wkr, N = 4;
+  const head = `<div class="ob-step">${step + 1} de ${N} · Semana del ${weekLabel(w.mon)}</div>`;
+  let body = '';
+  if (step === 0) {
+    const max = Math.max(...w.perDay.map(x => x.v), 1);
+    let cmp = '';
+    if (prev.total > 0) {
+      const diff = w.total - prev.total;
+      cmp = Math.abs(diff) < 1 ? 'Igual que la semana anterior.'
+        : diff < 0 ? `<b>${moneyR(-diff)} menos</b> que la semana anterior 👏`
+        : `${moneyR(diff)} más que la semana anterior. Sin drama: para eso lo miramos.`;
+    }
+    body = `<h2>La semana pasada gastaste</h2><div class="big-number">${moneyR(w.total)}</div>
+      <p class="muted small">Sin contar gastos fijos. ${cmp}</p>
+      <div class="week-bars">${w.perDay.map(x => `<div><i style="height:${Math.max(4, x.v / max * 100)}%;${x.v ? '' : 'opacity:.35'}"></i><span>${'LMXJVSD'[(fromISO(x.d).getDay() + 6) % 7]}</span></div>`).join('')}</div>`;
+  } else if (step === 1) {
+    body = `<h2>¿Dónde se fue?</h2>${w.cats.length ? `<div class="week-cats">${w.cats.slice(0, 3).map(([c, v]) => `<div class="week-cat"><span class="ico" style="background:${catOf(c).color}22">${catOf(c).emoji}</span>
+        <span class="grow"><b>${catOf(c).name}</b><span class="bar"><i style="width:${v / w.total * 100}%;background:${catOf(c).color}"></i></span></span><b class="num">${moneyR(v)}</b></div>`).join('')}</div>
+        ${w.cats.length > 3 ? `<p class="muted small">Y ${moneyR(w.total - w.cats.slice(0, 3).reduce((s, x) => s + x[1], 0))} en el resto.</p>` : ''}`
+      : '<p class="muted">No apuntaste gastos (aparte de los fijos). 🙌</p>'}`;
+  } else if (step === 2) {
+    const wins = weekWins(w, prev);
+    body = `<h2>Lo que salió bien</h2><ul class="week-wins">${(wins.length ? wins : [['🌱', 'Estás aquí, revisando tu semana: eso ya es un paso.']]).map(([e, t]) => `<li><span>${e}</span><span>${t}</span></li>`).join('')}</ul>`;
+  } else {
+    body = `<h2>Una intención para esta semana</h2><p class="muted small">Opcional y sin castigos: solo una pista para tener en mente.</p>
+      <div class="week-opts">${options.map((o, i) => `<button class="week-opt ${wkr.pick === i ? 'on' : ''}" data-action="weekPick" data-i="${i}">${esc(o.label)}</button>`).join('')}
+      <button class="week-opt ${wkr.pick === 'none' ? 'on' : ''}" data-action="weekPick" data-i="none">Esta semana, solo observar 🌱</button></div>`;
+  }
+  const last = step === N - 1;
+  return `${sheetHead('')}<div class="wk-review">${head}${body}
+    <button class="btn primary w100" data-action="${last ? 'weekDone' : 'weekNext'}" ${last && wkr.pick === -1 ? 'disabled' : ''}>${last ? 'Listo' : 'Siguiente'}</button>
+    ${step ? '<button class="btn link w100" data-action="weekBack">Atrás</button>' : ''}</div>`;
+}
+function weekDone() {
+  const o = wkr.pick === 'none' ? null : wkr.options[wkr.pick];
+  state.weekly[wkr.mon] = { done: true, goal: o ? { ...o } : null };
+  // Guarda solo las últimas semanas para que no crezca sin fin
+  Object.keys(state.weekly).sort().slice(0, -12).forEach(k => delete state.weekly[k]);
+  save(); closeSheet(); render(); confetti();
+  toast(o ? '🎯 Intención guardada. ¡Buena semana!' : 'Revisión hecha. ¡Buena semana! 🌱');
 }
 
 /* =====================================================================
@@ -619,6 +751,8 @@ function viewHoy() {
     ${manualToday.length === 0 && !marked ? '<button class="btn ghost w100" data-action="noSpendToday">✨ Hoy no he gastado nada</button>' : ''}
     ${manualToday.length === 0 && marked ? '<div class="pill-note">✨ Hoy, día sin gastos (de momento)</div>' : ''}
   </section>`;
+
+  html += weeklyCardHTML();
 
   if (todays.length) html += `<section class="card"><h3>Hoy · ${money(sum(todays))}</h3>${listRows(todays)}</section>`;
   else html += `<section class="card empty"><div class="empty-emoji">🪙</div><p>Aún no has apuntado nada hoy.<br>Toca <b>+</b> y lo tienes en 2 toques.</p></section>`;
@@ -2089,6 +2223,12 @@ const actions = {
   pasteGo: () => { const r = textToItems($('#pasteArea').value); handleParsed(r, 'paste'); },
   rvAll: el => { review.items.forEach(i => { i.checked = el.dataset.v === '1'; }); setSheet(reviewHTML()); },
   rvSave: () => reviewSave(),
+  // Revisión semanal
+  weekOpen: () => weekOpen(),
+  weekNext: () => { wkr.step++; setSheet(weekHTML()); },
+  weekBack: () => { wkr.step--; setSheet(weekHTML()); },
+  weekPick: el => { wkr.pick = el.dataset.i === 'none' ? 'none' : Number(el.dataset.i); setSheet(weekHTML()); },
+  weekDone: () => weekDone(),
   // Asistente con IA
   aiOpen: () => aiOpen(),
   aiSaveKey: () => aiSaveKey(),
