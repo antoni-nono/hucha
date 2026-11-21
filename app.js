@@ -30,15 +30,34 @@ const catOf = id => CAT[id] || CAT.otros;
 const RULES = [
   ['delivery', ['glovo', 'just eat', 'justeat', 'uber eats', 'ubereats', 'deliveroo', 'telepizza', 'dominos', 'foodora']],
   ['subs', ['netflix', 'spotify', 'hbo', 'max', 'disney', 'prime video', 'amazon prime', 'apple com bill', 'icloud', 'youtube', 'chatgpt', 'openai', 'claude', 'anthropic', 'gimnasio', 'gym', 'basic fit', 'basicfit', 'dazn', 'movistar plus', 'filmin', 'audible', 'crunchyroll', 'patreon', 'duolingo', 'google one', 'dropbox', 'adobe', 'canva', 'notion', 'twitch', 'suscripcion']],
-  ['super', ['mercadona', 'carrefour', 'lidl', 'aldi', 'dia', 'alcampo', 'eroski', 'consum', 'hipercor', 'ahorramas', 'bonpreu', 'caprabo', 'condis', 'froiz', 'gadis', 'spar', 'supercor', 'masymas', 'supermercado', 'super', 'fruteria', 'carniceria', 'panaderia', 'mercado', 'coviran', 'family cash', 'bonarea']],
+  ['super', ['suma', 'hiperdino', 'superdino', 'mercadona', 'carrefour', 'lidl', 'aldi', 'dia', 'alcampo', 'eroski', 'consum', 'hipercor', 'ahorramas', 'bonpreu', 'caprabo', 'condis', 'froiz', 'gadis', 'spar', 'supercor', 'masymas', 'supermercado', 'super', 'fruteria', 'carniceria', 'panaderia', 'mercado', 'coviran', 'family cash', 'bonarea']],
   ['cafe', ['starbucks', 'cafe', 'cafes', 'cafeteria', 'granier', 'costa coffee', 'tim hortons', 'churreria', 'pasteleria', 'vending', 'heladeria']],
   ['comer', ['restaurante', 'bar', 'burger', 'mcdonalds', 'mc donalds', 'kfc', 'taberna', 'vips', 'foster', 'goiko', 'pizzeria', 'sushi', 'tapas', 'cerveceria', 'five guys', 'montaditos', 'rodilla', 'taco bell', 'popeyes', 'wok', 'kebab', 'tagliatella', 'ginos', 'asador', 'meson']],
   ['transporte', ['renfe', 'metro', 'emt', 'tmb', 'cabify', 'uber', 'bolt', 'freenow', 'free now', 'taxi', 'gasolinera', 'gasolina', 'repsol', 'cepsa', 'galp', 'bp', 'shell', 'parking', 'aparcamiento', 'bicimad', 'bicing', 'alsa', 'peaje', 'autopista', 'blablacar', 'ouigo', 'iryo', 'abono transporte']],
   ['casa', ['alquiler', 'comunidad', 'endesa', 'iberdrola', 'naturgy', 'holaluz', 'totalenergies', 'movistar', 'vodafone', 'orange', 'digi', 'yoigo', 'masmovil', 'pepephone', 'lowi', 'simyo', 'finetwork', 'jazztel', 'agua', 'canal de isabel', 'seguro hogar', 'leroy merlin', 'bauhaus', 'bricomart', 'luz', 'gas natural', 'internet', 'fibra']],
   ['salud', ['farmacia', 'clinica', 'dentista', 'hospital', 'medico', 'optica', 'fisio', 'fisioterapia', 'sanitas', 'adeslas', 'dkv', 'asisa', 'psicologo', 'psicologa', 'parafarmacia']],
-  ['ocio', ['cine', 'cines', 'yelmo', 'cinesa', 'kinepolis', 'entradas', 'ticketmaster', 'steam', 'playstation', 'nintendo', 'xbox', 'teatro', 'museo', 'concierto', 'discoteca', 'bolera', 'escape room', 'casa del libro', 'libreria']],
+  ['ocio', ['cine', 'cines', 'yelmo', 'cinesa', 'kinepolis', 'entradas', 'ticketmaster', 'steam', 'playstation', 'nintendo', 'xbox', 'teatro', 'museo', 'concierto', 'discoteca', 'bolera', 'escape room', 'casa del libro', 'libreria',
+    'padel', 'tenis', 'golf', 'karting', 'bowling', 'escalada', 'kayak', 'surf', 'surfing', 'bodyboard', 'surfcamp', 'diving', 'divers', 'dive', 'buceo', 'submarinismo', 'scuba', 'pub', 'club', 'fiesta', 'cocteleria', 'copas']],
   ['viajes', ['iberia', 'vueling', 'ryanair', 'easyjet', 'air europa', 'booking', 'airbnb', 'hotel', 'hostal', 'expedia', 'edreams', 'volotea', 'binter']],
-  ['compras', ['amazon', 'amzn', 'zara', 'primark', 'shein', 'aliexpress', 'temu', 'corte ingles', 'decathlon', 'ikea', 'fnac', 'mediamarkt', 'media markt', 'pccomponentes', 'mango', 'pull bear', 'bershka', 'stradivarius', 'sephora', 'druni', 'primor', 'miniso', 'tiger', 'wallapop', 'vinted', 'h m', 'uniqlo', 'nike', 'adidas']],
+  ['compras', ['amazon', 'amzn', 'zara', 'primark', 'shein', 'aliexpress', 'temu', 'corte ingles', 'decathlon', 'ikea', 'fnac', 'mediamarkt', 'media markt', 'pccomponentes', 'mango', 'pull bear', 'bershka', 'stradivarius', 'sephora', 'druni', 'primor', 'miniso', 'tiger', 'wallapop', 'vinted', 'h m', 'uniqlo', 'nike', 'adidas',
+    'bazar', 'peluqueria', 'peluqueros', 'barberia', 'barber', 'hairsal', 'hair', 'estetica', 'manicura', 'papeleria']],
+];
+
+/* Tipos de ocio (subcategorías). El usuario puede añadir los suyos (state.ocioSubs). */
+const OCIO_SUBS = [
+  { id: 'fiesta', emoji: '🪩', name: 'Fiesta' },
+  { id: 'buceo', emoji: '🤿', name: 'Buceo' },
+  { id: 'surf', emoji: '🏄', name: 'Surf' },
+  { id: 'deporte', emoji: '🎾', name: 'Deporte' },
+  { id: 'amigos', emoji: '👫', name: 'Amigos' },
+  { id: 'cultura', emoji: '🎬', name: 'Cine y cultura' },
+];
+const SUB_RULES = [
+  ['buceo', ['diving', 'divers', 'dive', 'buceo', 'submarinismo', 'scuba', 'padi']],
+  ['surf', ['surf', 'surfing', 'bodyboard', 'surfcamp']],
+  ['deporte', ['padel', 'tenis', 'golf', 'karting', 'bowling', 'bolera', 'escalada', 'kayak', 'futbol', 'polideportivo', 'crossfit', 'yoga']],
+  ['fiesta', ['discoteca', 'pub', 'club', 'fiesta', 'cocteleria', 'copas']],
+  ['cultura', ['cine', 'cines', 'yelmo', 'cinesa', 'kinepolis', 'teatro', 'museo', 'concierto', 'ticketmaster', 'entradas', 'libreria', 'casa del libro']],
 ];
 
 const BADGES = [
@@ -163,11 +182,20 @@ function cleanNote(s) {
 }
 
 function merchantKey(s) { return words(s).filter(x => x.length > 1 && !/^\d+$/.test(x)).slice(0, 2).join(' '); }
+/** Clave aprendida para este texto: la exacta o, si no, la que empieza por la misma palabra ("Fifo" → "fifo diving"). */
+function learnedKey(s) {
+  const k = merchantKey(s);
+  if (!k) return null;
+  if (state.merchantMap[k]) return k;
+  const w0 = k.split(' ')[0];
+  if (w0.length < 4 || /^(bizum|compra|pago|recibo|transferencia|cafe|bar|super|tienda|restaurante)$/.test(w0)) return null;
+  return Object.keys(state.merchantMap).find(x => x.split(' ')[0] === w0) || null;
+}
 
 function autoCat(text) {
   if (!text) return null;
-  const k = merchantKey(text);
-  if (k && state.merchantMap[k]) return state.merchantMap[k];
+  const k = learnedKey(text);
+  if (k) return state.merchantMap[k];
   const w = words(text), ws = ' ' + w.join(' ') + ' ', joined = w.join('');
   for (const [cat, keys] of RULES) {
     for (const key of keys) {
@@ -177,7 +205,30 @@ function autoCat(text) {
   }
   return null;
 }
-function learn(note, cat) { const k = merchantKey(note); if (k) state.merchantMap[k] = cat; }
+/** Aprende "este comercio va en esta categoría (y tipo de ocio)". La próxima vez se pone solo. */
+function learn(note, cat, sub = '') {
+  const k = merchantKey(note);
+  if (!k) return;
+  state.merchantMap[k] = cat;
+  state.merchantSub = state.merchantSub || {};
+  if (cat === 'ocio' && sub) state.merchantSub[k] = sub; else delete state.merchantSub[k];
+}
+const subsOf = cat => (cat === 'ocio' ? [...OCIO_SUBS, ...(state.ocioSubs || [])] : []);
+const subOf = (cat, id) => (id ? subsOf(cat).find(s => s.id === id) || null : null);
+/** Tipo de ocio: primero lo aprendido, luego palabras clave. */
+function guessSub(text) {
+  if (!text) return '';
+  const k = learnedKey(text);
+  if (k && state.merchantMap[k] === 'ocio' && state.merchantSub?.[k]) return state.merchantSub[k];
+  const w = words(text), ws = ' ' + w.join(' ') + ' ', joined = w.join('');
+  for (const [sub, keys] of SUB_RULES) {
+    for (const key of keys) {
+      if (key.includes(' ') ? ws.includes(' ' + key + ' ') : (w.includes(key) || (key.length >= 6 && joined.includes(key)))) return sub;
+    }
+  }
+  return '';
+}
+const learnedCat = text => { const k = learnedKey(text); return (k && state.merchantMap[k]) || null; };
 
 const loadedScripts = {};
 function loadScript(src) {
@@ -204,6 +255,8 @@ const DEFAULT = () => ({
   wishlist: [],   // {id, name, price, created, waitH, status: waiting|bought|resisted, decided}
   noSpend: [],    // fechas ISO marcadas como "hoy no he gastado"
   merchantMap: {},
+  merchantSub: {},  // comercio → tipo de ocio aprendido
+  ocioSubs: [],     // tipos de ocio creados por el usuario {id, emoji, name}
   badges: {},
   resistedTotal: 0,
   dismissed: {},
@@ -385,7 +438,7 @@ function weeklyCardHTML() {
     if (!w.list.length && !w.zen) return '';   // la semana pasada no hubo nada que revisar
     return `<div class="card hint">🗓️ <b>Tu semana en 1 minuto</b><br><span class="muted small">Cómo fue la semana pasada y, si quieres, una pequeña intención para esta.</span>
       <div style="margin-top:10px"><button class="btn sm primary" data-action="weekOpen">Empezar</button></div>
-      <button class="x" data-action="dismiss" data-k="week${mon}" aria-label="Ahora no">✕</button></div>`;
+      <button class="x" data-action="dismiss" data-k="week${mon}" aria-label="Ahora no">${ICON_X}</button></div>`;
   }
   if (!wk.goal) return '';
   const g = wk.goal, p = weekGoalProgress(g, mon);
@@ -645,7 +698,8 @@ function closeSheet() {
   sheetKind = null; add = null;
   document.body.classList.remove('noscroll');
 }
-const sheetHead = (title = '') => `<div class="sheet-head"><h2 style="margin:0">${title}</h2><button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">✕</button></div>`;
+const ICON_X = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+const sheetHead = (title = '') => `<div class="sheet-head"><h2 style="margin:0">${title}</h2><button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">${ICON_X}</button></div>`;
 
 let toastTimer;
 function toast(msg, opts = {}) {
@@ -688,7 +742,7 @@ function listRows(arr) {
     const c = catOf(e.cat);
     return `<li><button class="row" data-action="editExpense" data-id="${e.id}">
       <span class="ico" style="background:${c.color}22">${c.emoji}</span>
-      <span class="row-main"><span class="row-title">${esc(e.note || c.name)}</span><span class="row-sub">${esc(c.name)}${SRC_ICON[e.source] || ''}</span></span>
+      <span class="row-main"><span class="row-title">${esc(e.note || c.name)}</span><span class="row-sub">${esc(c.name)}${(sb => (sb ? ` · ${sb.emoji} ${esc(sb.name)}` : ''))(subOf(e.cat, e.sub))}${SRC_ICON[e.source] || ''}</span></span>
       <span class="row-amt">${money(e.amount)}</span></button></li>`;
   }).join('')}</ul>`;
 }
@@ -704,7 +758,7 @@ function viewHoy() {
   let html = '';
 
   if (isIOS() && !isStandalone() && !state.dismissed.install) {
-    html += `<div class="card hint">📲 <b>Instálala en tu iPhone</b> para que no se borren tus datos: toca <b>Compartir</b> (□↑) → <b>Añadir a pantalla de inicio</b>.<button class="x" data-action="dismiss" data-k="install" aria-label="Cerrar aviso">✕</button></div>`;
+    html += `<div class="card hint">📲 <b>Instálala en tu iPhone</b> para que no se borren tus datos: toca <b>Compartir</b> (□↑) → <b>Añadir a pantalla de inicio</b>.<button class="x" data-action="dismiss" data-k="install" aria-label="Cerrar aviso">${ICON_X}</button></div>`;
   }
 
   if (b.hasBudget) {
@@ -761,7 +815,7 @@ function viewHoy() {
   if (b.hasBudget && !state.recurring.length && !state.dismissed.fixed) {
     html += `<div class="card hint">🔁 <b>¿Tienes gastos fijos?</b> (alquiler, móvil, gimnasio…) Añádelos una vez y se apuntarán solos cada mes.
       <div style="margin-top:10px"><button class="btn sm primary" data-action="openSettings">Añadir fijos</button></div>
-      <button class="x" data-action="dismiss" data-k="fixed" aria-label="Cerrar aviso">✕</button></div>`;
+      <button class="x" data-action="dismiss" data-k="fixed" aria-label="Cerrar aviso">${ICON_X}</button></div>`;
   } else if (tip) {
     html += `<section class="card"><button class="tip-card" data-tab="ahorro" data-sub="pistas"><span class="emoji">${tip.emoji}</span><span><b>${tip.title}</b><br><span class="muted small">Toca para ver más pistas de ahorro →</span></span></button></section>`;
   }
@@ -814,7 +868,7 @@ function viewMes() {
   html += `<section class="card"><h3>¿En qué se va?</h3>
     <div class="donut-wrap">${donut(byCat, total)}<div class="donut-center"><div><b>${moneyR(total)}</b><small>${ex.length} ${ex.length === 1 ? 'gasto' : 'gastos'}</small></div></div></div>
     <ul class="legend">${byCat.map(x => `<li><button data-action="filterCat" data-cat="${x.c.id}" class="${ui.cat === x.c.id ? 'on' : ''}">
-      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b></button></li>`).join('')}</ul>
+      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b></button>${subsLine(x.c.id, ex)}</li>`).join('')}</ul>
     <p class="muted small" style="margin:8px 0 0">Toca una categoría para ver solo esos gastos.</p></section>`;
 
   const needs = sum(ex.filter(e => catOf(e.cat).type === 'need')), wants = total - needs;
@@ -837,6 +891,18 @@ function viewMes() {
       : `<p class="muted">${ui.day && ui.day <= t ? 'Ese día no gastaste nada ✨' : 'No hay gastos con este filtro.'}</p>`}
   </section>`;
   return html;
+}
+
+/** Desglose por tipo (ocio): "🤿 Buceo 42 € · 🎾 Deporte 10 €" */
+function subsLine(cat, ex) {
+  const subs = subsOf(cat);
+  if (!subs.length) return '';
+  const inCat = ex.filter(e => catOf(e.cat).id === cat);
+  const rows = [...subs, { id: '', emoji: '🎉', name: 'Sin tipo' }]
+    .map(s => ({ s, v: sum(inCat.filter(e => (subOf(cat, e.sub)?.id || '') === s.id)) }))
+    .filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+  if (!rows.length || (rows.length === 1 && !rows[0].s.id)) return '';
+  return `<div class="sub-line">${rows.map(x => `<span>${x.s.emoji} ${esc(x.s.name)} <b class="num">${moneyR(x.v)}</b></span>`).join('')}</div>`;
 }
 
 /* ---------- Calendario: qué días gastas más ---------- */
@@ -914,7 +980,7 @@ function viewPistas() {
     <div class="insight-head"><span class="emoji">${i.emoji}</span><b>${i.title}</b></div>
     <p class="muted" style="margin-bottom:6px">${i.text}</p>
     ${i.saveText ? `<span class="save-tag">💰 ${i.saveText}</span>` : ''}
-    <button class="x" data-action="dismiss" data-k="ins:${i.id}:${p.key}" aria-label="Ocultar esta pista este mes">✕</button>
+    <button class="x" data-action="dismiss" data-k="ins:${i.id}:${p.key}" aria-label="Ocultar esta pista este mes">${ICON_X}</button>
   </section>`).join('');
   html += `<section class="card"><h3>Ideas que funcionan con TDAH</h3><ul class="tips">${TIPS.map(([e, t]) => `<li><span class="emoji">${e}</span><span>${t}</span></li>`).join('')}</ul></section>`;
   return html;
@@ -1010,7 +1076,7 @@ function addHTML() {
       <div class="add-tools">
         ${add.editId ? '<b>Editar gasto</b>' : '<button class="pill ai-pill" data-action="aiOpen">✨ Asistente</button><button class="pill" data-action="capture">📸 Captura</button><button class="pill" data-action="pasteText">📋 Pegar</button>'}
       </div>
-      <button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">✕</button>
+      <button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">${ICON_X}</button>
     </div>
     <div class="amt-wrap" id="amtWrap"><span class="amt" id="amt">0</span><span class="amt-cur">€</span><div class="hours" id="hours"></div></div>
     <input id="note" class="note-input" placeholder="¿Dónde o qué? (opcional)" value="${esc(add.note)}" autocomplete="off" enterkeyhint="done">
@@ -1062,28 +1128,68 @@ function keyPress(k) {
   updateAmt();
 }
 
-function pickCat(cat) {
+/* Ocio: ¿qué tipo? (fiesta, buceo, surf…). Si ya lo sé por el comercio, no pregunto. */
+function subPickHTML() {
+  const cur = add.sub || '';
+  return `<div class="sheet-head"><button class="btn link" data-action="subBack" style="padding-left:0;width:auto;margin-right:auto">← Atrás</button>
+      <button class="icon-btn" data-action="closeSheet" aria-label="Cerrar">${ICON_X}</button></div>
+    <h2>🎉 ¿Qué tipo de ocio?</h2>
+    <p class="muted small">${money(addAmountNum())}${add.note ? ' · ' + esc(add.note) : ''}. Me acordaré para la próxima vez que vayas a ese sitio.</p>
+    <div class="catgrid subgrid">
+      ${subsOf('ocio').map(s => `<button class="cat ${cur === s.id ? 'selected' : ''}" data-action="pickSub" data-sub="${s.id}"><span class="e">${s.emoji}</span>${esc(s.name)}</button>`).join('')}
+      <button class="cat ${add.editId && !cur ? 'selected' : ''}" data-action="pickSub" data-sub=""><span class="e">🎉</span>Solo ocio</button>
+      <button class="cat ghost-cat" data-action="newSub"><span class="e">＋</span>Otro tipo</button>
+    </div>`;
+}
+function newSub(after) {
+  const name = (prompt('¿Qué tipo de ocio quieres añadir? (p. ej. Escalada, Conciertos, Viajes cortos)') || '').trim();
+  if (!name) return null;
+  const em = name.match(/^\p{Extended_Pictographic}️?/u);
+  const clean = cap(name.replace(/^\p{Extended_Pictographic}️?\s*/u, '').slice(0, 20));
+  if (!clean) return null;
+  const exist = subsOf('ocio').find(s => norm(s.name) === norm(clean));
+  if (exist) return exist.id;
+  const s = { id: 'u' + uid(), emoji: em ? em[0] : '✨', name: clean };
+  state.ocioSubs = [...(state.ocioSubs || []), s];
+  save();
+  if (after) after(s.id);
+  return s.id;
+}
+
+function pickCat(cat, sub) {
   const amount = addAmountNum();
   if (!(amount > 0)) { shake('#amtWrap'); toast('Primero escribe el importe 👆'); return; }
-  const note = ($('#note')?.value || '').trim();
+  const note = ($('#note')?.value ?? add.note ?? '').trim();
+  add.note = note;
+  if (cat === 'ocio' && sub === undefined) {
+    const known = add.editId ? null : guessSub(note);
+    if (known) sub = known;
+    else {
+      if (add.editId) add.sub = state.expenses.find(x => x.id === add.editId)?.sub || '';
+      setSheet(subPickHTML()); return;
+    }
+  }
+  sub = cat === 'ocio' ? (sub || '') : '';
   const { date, editId, source, wishId } = add;
-  if (note) learn(note, cat);
+  if (note) learn(note, cat, sub);
   if (editId) {
     const e = state.expenses.find(x => x.id === editId);
     const before = { ...e };
     Object.assign(e, { amount, cat, note, date });
+    if (sub) e.sub = sub; else delete e.sub;
     save(); closeSheet(); render();
-    toast('Cambios guardados', { undo: () => Object.assign(e, before) });
+    toast('Cambios guardados', { undo: () => { Object.assign(e, before); if (!('sub' in before)) delete e.sub; } });
     return;
   }
   const firstToday = date === todayISO() && !loggedDays().has(date);
   const e = { id: uid(), amount, cat, note, date, ts: Date.now(), source };
+  if (sub) e.sub = sub;
   state.expenses.push(e);
   const wish = wishId && state.wishlist.find(x => x.id === wishId);
   if (wish) { wish.status = 'bought'; wish.decided = Date.now(); }
   save(); closeSheet(); render();
-  const c = catOf(cat);
-  toast(`${money(amount)} en ${c.emoji} ${c.short}${firstToday ? ` · racha ${streak()} 🔥` : ''}`, {
+  const c = catOf(cat), sb = subOf(cat, sub);
+  toast(`${money(amount)} en ${sb ? `${sb.emoji} ${sb.name}` : `${c.emoji} ${c.short}`}${firstToday ? ` · racha ${streak()} 🔥` : ''}`, {
     undo: () => { state.expenses = state.expenses.filter(x => x.id !== e.id); if (wish) wish.status = 'waiting'; },
   });
   checkBadges();
@@ -1103,9 +1209,111 @@ function deleteExpense() {
 const AMT_RE = /([-−–+]\s?)?(?:€\s?)?(\d{1,3}(?:[.\s]\d{3})+|\d+)[,.](\d{2})(?!\d)(?!\s?%)(\s?(?:€|eur))?/gi;
 const DATE_STRIP = [/\b\d{4}-\d{2}-\d{2}\b/g, /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b/g, /\b\d{1,2}\/\d{1,2}\b/g, /\b\d{1,2}:\d{2}(:\d{2})?\b/g];
 
+/* ---------- Listas de movimientos de la app del banco (Sabadell y parecidas) ----------
+   Cada movimiento ocupa varias líneas:
+     Compra Tarj. La -10,00 €
+     Azotea Del Padel-
+     Las Palmas De
+     5402..2010
+   Hay que juntarlas para no quedarse solo con "La". */
+const MOV_RE = /(compra|pago|abono|bizum|transferencia|recibo|adeudo|cargo|reintegro|retirada|devoluci[oó]n|traspaso|comisi[oó]n|liquidaci[oó]n|domiciliaci[oó]n|reembolso)/i;
+const CARD_RE = /\d{4}\s?\.{2,}\s?\d{3}\w/;
+const WEEKDAY_N = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+const MONTHS_L = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** "Hoy", "Ayer", "Viernes 13", "13 nov"… → fecha ISO (nunca futura). */
+function stmtDate(line, month) {
+  const n = norm(line).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const t = todayISO();
+  if (/^(hoy)\b/.test(n)) return t;
+  if (/^(ayer)\b/.test(n)) return addDays(t, -1);
+  if (/^(anteayer)\b/.test(n)) return addDays(t, -2);
+  const m = n.match(/^(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+(\d{1,2})\b/);
+  if (m) {
+    const wd = WEEKDAY_N.indexOf(m[1]), day = +m[2];
+    let fallback = null;
+    for (let i = 0; i < 400; i++) {
+      const iso = addDays(t, -i), d = fromISO(iso);
+      if (d.getDate() !== day || (month != null && d.getMonth() !== month)) continue;
+      if (d.getDay() === wd) return iso;
+      fallback = fallback || iso;
+    }
+    return fallback;
+  }
+  if (/^(lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d{1,2})\b/.test(n) && n.length < 30) {
+    const iso = parseDateLoose(line);
+    if (iso) return iso > t ? t : iso;
+  }
+  return null;
+}
+
+/** Limpia el concepto de un movimiento del banco: "Fifo Diving Shop-Las Palmas De 5402..2010" → "Fifo Diving Shop". */
+function stmtNote(raw) {
+  let t = String(raw).replace(CARD_RE, ' ').replace(/[<>«»=|~_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const biz = t.match(/\bbizum\s+(?:a\s+|de\s+)?(.+)/i);
+  if (biz && /^(pago|env)/i.test(t)) return 'Bizum a ' + cleanNote(biz[1]);
+  t = t.replace(/^(compra|pago)\s+(con\s+)?(tarj(eta)?\.?|tj\.?)?/i, '').trim();
+  // La app pone "Comercio-Ciudad": nos quedamos con el comercio
+  const cut = t.match(/^(.*?\p{L}{2}.*?)\s*-\s*(?=\p{L})/u);
+  if (cut && /\p{L}{3,}/u.test(cut[1])) t = cut[1];
+  return cleanNote(t.replace(/-\s*$/, ''));
+}
+
+/** Si el texto parece una lista de movimientos, la lee movimiento a movimiento. Si no, null. */
+function parseStatement(lines) {
+  lines = lines
+    .map(l => l.replace(/(\d[,.]\d{2})0(\s?€)/g, '$1$2').replace(/fraccionar pago/gi, ' ').replace(/\s+/g, ' ').trim())
+    .filter(l => l && !/^(transferencias|domiciliaciones|gestiones|\s)+$/i.test(norm(l).replace(/[^a-z ]/g, ' ').trim() || 'x'));
+  const hasAmt = l => new RegExp(AMT_RE.source, 'gi').test(l);
+  if (lines.filter(l => MOV_RE.test(l) && hasAmt(l)).length < 2) return null;
+
+  const out = [];
+  let cur = null, date = null, month = null;
+  const close = () => { if (cur && cur.amount != null) out.push(cur); cur = null; };
+  for (const line of lines) {
+    const n = norm(line).replace(/[^a-z0-9 ]/g, ' ').trim();
+    const mh = n.match(/^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/);
+    if (mh && n.split(' ').length <= 3) { month = MONTHS_L.indexOf(mh[1]); continue; }
+    const d = stmtDate(line, month);
+    if (d && !hasAmt(line)) { close(); date = d; continue; }
+
+    const ms = [...line.matchAll(new RegExp(AMT_RE.source, 'gi'))];
+    const ki = line.search(MOV_RE);
+    if (ki >= 0 && (ms.length || !cur || cur.amount != null)) {
+      // Empieza un movimiento nuevo (lo de antes de la palabra clave suele ser el icono mal leído)
+      close();
+      const m = ms.find(x => x[1] || x[4]) || ms[0];
+      const body = line.slice(ki).replace(new RegExp(AMT_RE.source, 'gi'), ' ');
+      cur = { text: body, date, lines: 0, done: /bizum/i.test(body), amount: null, sign: '' };
+      if (m) { cur.amount = parseFloat(m[2].replace(/[.\s]/g, '') + '.' + m[3]); cur.sign = (m[1] || '').trim(); }
+      continue;
+    }
+    if (!cur) continue;                       // cabecera (saldo, buscador…)
+    if (ms.length) {
+      if (cur.amount == null) { const m = ms.find(x => x[1] || x[4]) || ms[0]; cur.amount = parseFloat(m[2].replace(/[.\s]/g, '') + '.' + m[3]); cur.sign = (m[1] || '').trim(); }
+      // si ya tenía importe, esto es el saldo: se ignora el número
+    }
+    if (cur.done) continue;
+    const card = CARD_RE.test(line);
+    let txt = line.replace(new RegExp(AMT_RE.source, 'gi'), ' ').split(CARD_RE)[0];
+    // Quita basura del principio (iconos leídos como "NE)", "CoR", "RE", "7"…)
+    txt = txt.replace(/^\s*(?:[^\p{L}\s]+|\p{L}*[^\p{L}\s-]+\p{L}*|\p{Lu}{1,3}|\p{Lu}\p{Ll}*\p{Lu}\p{L}*)\s+(?=\p{L})/u, '');
+    if (/\p{L}{2,}/u.test(txt)) cur.text += ' ' + txt;
+    cur.lines++;
+    if (card || cur.lines >= 3) cur.done = true;
+  }
+  close();
+  return out.map(x => {
+    const income = x.sign === '+' || /^(abono|ingreso|devoluci|reembolso|transferencia recibida|bizum recibido)/i.test(norm(x.text));
+    return { amount: income ? x.amount : -x.amount, income, note: stmtNote(x.text), date: x.date };
+  });
+}
+
 /** Convierte texto (de una captura, notificación o email) en posibles gastos. */
 function textToItems(text) {
   const lines = String(text).split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 1);
+  const stmt = parseStatement(lines);
+  if (stmt && stmt.length) return finalizeItems(stmt);
   const entries = [];
   let lastDate = null, lastText = '', firstDate = null;
   for (const line of lines) {
@@ -1169,7 +1377,8 @@ function finalizeItems(raw) {
     if (x.income || (hasNeg && x.amount > 0)) { incomes++; continue; }
     const amount = Math.abs(x.amount), date = x.date || todayISO();
     const dup = existing.has(date + '|' + amount.toFixed(2));
-    items.push({ amount, note: x.note || '', date, cat: autoCat(x.note) || 'otros', dup, checked: !dup });
+    const cat = autoCat(x.note) || 'otros';
+    items.push({ amount, note: x.note || '', date, cat, sub: cat === 'ocio' ? guessSub(x.note) : '', dup, checked: !dup });
   }
   return { items, incomes };
 }
@@ -1242,6 +1451,7 @@ function reviewHTML() {
         <input class="rv-amt" data-rv="amount" inputmode="decimal" value="${amountToStr(it.amount)}" aria-label="Importe"></div>
       <div class="rv-bottom"><select data-rv="cat" aria-label="Categoría">${CATS.map(c => `<option value="${c.id}" ${c.id === it.cat ? 'selected' : ''}>${c.emoji} ${c.name}</option>`).join('')}</select>
         <input type="date" data-rv="date" value="${it.date}" aria-label="Fecha"></div>
+      ${it.cat === 'ocio' ? `<select class="rv-sub" data-rv="sub" aria-label="Tipo de ocio"><option value="">🎉 Ocio (sin especificar)</option>${subsOf('ocio').map(s => `<option value="${s.id}" ${s.id === it.sub ? 'selected' : ''}>${s.emoji} ${esc(s.name)}</option>`).join('')}<option value="__new">＋ Otro tipo…</option></select>` : ''}
       ${it.dup ? '<div class="dup">⚠️ Puede que ya esté apuntado</div>' : ''}
     </div>`).join('')}
     <div class="sticky-save"><button class="btn primary w100" data-action="rvSave" ${n ? '' : 'disabled'}>Guardar ${n} ${n === 1 ? 'gasto' : 'gastos'}</button></div>`;
@@ -1251,8 +1461,9 @@ function reviewSave() {
   const ids = [];
   for (const it of chosen) {
     const e = { id: uid(), amount: it.amount, cat: it.cat, note: it.note, date: it.date || todayISO(), ts: Date.now(), source: review.source };
+    if (it.cat === 'ocio' && it.sub) e.sub = it.sub;
     state.expenses.push(e); ids.push(e.id);
-    if (it.note) learn(it.note, it.cat);
+    if (it.note) learn(it.note, it.cat, it.cat === 'ocio' ? it.sub : '');
   }
   if (review.source === 'ia') ai = null;   // conversación terminada
   save(); closeSheet(); render();
@@ -1397,7 +1608,7 @@ function settingsHTML() {
     <p class="muted small">Presupuesto para gastar = ingresos − ahorro. Los gastos fijos salen de ahí.</p>
 
     <div class="section-title">Gastos fijos (se apuntan solos)</div>
-    <ul class="list-plain">${state.recurring.map(r => `<li><span style="font-size:22px">${catOf(r.cat).emoji}</span><span class="grow"><b>${esc(r.name)}</b><br><span class="muted small">Día ${r.day} · ${money(r.amount)}</span></span><button class="del" data-action="delRecurring" data-id="${r.id}" aria-label="Quitar">✕</button></li>`).join('') || '<li class="muted small">Aún no tienes ninguno. Alquiler, móvil, gimnasio, Netflix…</li>'}</ul>
+    <ul class="list-plain">${state.recurring.map(r => `<li><span style="font-size:22px">${catOf(r.cat).emoji}</span><span class="grow"><b>${esc(r.name)}</b><br><span class="muted small">Día ${r.day} · ${money(r.amount)}</span></span><button class="del" data-action="delRecurring" data-id="${r.id}" aria-label="Quitar">${ICON_X}</button></li>`).join('') || '<li class="muted small">Aún no tienes ninguno. Alquiler, móvil, gimnasio, Netflix…</li>'}</ul>
     <div class="grid2">
       <label class="field"><span>Nombre</span><input id="rName" placeholder="Alquiler"></label>
       <label class="field"><span>Importe</span><input id="rAmount" inputmode="decimal" placeholder="650"></label>
@@ -1950,7 +2161,7 @@ const AI_CAT_HINTS = {
   comer: 'restaurantes, bares, cenas fuera',
   delivery: 'Glovo, Just Eat, Uber Eats',
   cafe: 'cafeterías, snacks, heladerías',
-  ocio: 'cine, conciertos, planes, juegos, libros',
+  ocio: 'cine, conciertos, planes, fiesta, deporte (pádel, surf, buceo), juegos, libros',
   compras: 'ropa, Amazon, bazares, tecnología, peluquería, regalos',
   subs: 'suscripciones mensuales, gimnasio, cursos online pagados a plazos',
   viajes: 'vuelos, hoteles, Airbnb',
@@ -1964,7 +2175,9 @@ Tu trabajo: sacar la lista de GASTOS para apuntarlos.
 - fecha: AAAA-MM-DD. Las apps del banco ponen "Hoy", "Lunes 16" o "Viernes 13" sin año: deduce el mes y el año con la fecha de hoy y las cabeceras (p. ej. "Noviembre"). Nunca pongas fechas futuras.
 - Si las capturas se solapan, no repitas un movimiento (misma fecha, importe y comercio = uno solo).
 - concepto: corto y claro. Quita "Compra Tarj.", números de tarjeta (5402..2010) y la ciudad. Ej.: "Mercadona", "Peluquería Figueroa y Guerra", "Bizum a Josep (cena)".
-- categoria: una de la lista. Lo que diga el usuario manda sobre lo que tú supongas.
+- categoria: una de la lista. Lo que diga el usuario manda sobre lo que tú supongas. Si el usuario ya clasificó un comercio antes (te lo paso en su primer mensaje), usa esa categoría.
+- subcategoria: solo para ocio, el id del tipo de ocio (te paso la lista en el primer mensaje); si no está claro o no es ocio, "".
+- Evita "otros": úsalo solo si de verdad no encaja nada y, si el comercio no te suena, pregunta.
 - Pregunta SOLO lo que no puedas deducir y cambie la categoría o el importe: típico en Bizums enviados, pagos financiados o a plazos (Sequra, Aplazame, Klarna…), comercios que no reconoces o importes ilegibles. Máximo 3 preguntas a la vez, cada una con 2–4 opciones muy cortas (nombres de categoría, "No es un gasto"…). Mientras, incluye ese gasto con tu mejor suposición.
 - Si el usuario dice que algo no es un gasto, quítalo de la lista.
 - Devuelve SIEMPRE la lista completa y actualizada de toda la conversación, no solo lo nuevo.
@@ -1978,8 +2191,8 @@ const AI_SCHEMA = {
   properties: {
     mensaje: { type: 'string' },
     gastos: { type: 'array', items: {
-      type: 'object', additionalProperties: false, required: ['fecha', 'importe', 'concepto', 'categoria'],
-      properties: { fecha: { type: 'string' }, importe: { type: 'number' }, concepto: { type: 'string' }, categoria: { type: 'string', enum: CATS.map(c => c.id) } },
+      type: 'object', additionalProperties: false, required: ['fecha', 'importe', 'concepto', 'categoria', 'subcategoria'],
+      properties: { fecha: { type: 'string' }, importe: { type: 'number' }, concepto: { type: 'string' }, categoria: { type: 'string', enum: CATS.map(c => c.id) }, subcategoria: { type: 'string' } },
     } },
     preguntas: { type: 'array', items: {
       type: 'object', additionalProperties: false, required: ['pregunta', 'opciones'],
@@ -2088,7 +2301,7 @@ function aiHTML() {
     </div>
     ${n && !a.busy ? `<div class="ai-found"><span><b>${n} ${n === 1 ? 'gasto listo' : 'gastos listos'}</b><br><span class="muted small">${money(a.gastos.reduce((s, g) => s + g.importe, 0))} en total</span></span><button class="btn primary" data-action="aiReview">Revisar y guardar</button></div>` : ''}
     <div class="ai-compose">
-      ${a.pending.length ? `<div class="ai-thumbs">${a.pending.map((p, i) => `<span><img src="${p.dataUrl}" alt="Captura ${i + 1}"><button data-action="aiDropImg" data-i="${i}" aria-label="Quitar captura">✕</button></span>`).join('')}</div>` : ''}
+      ${a.pending.length ? `<div class="ai-thumbs">${a.pending.map((p, i) => `<span><img src="${p.dataUrl}" alt="Captura ${i + 1}"><button data-action="aiDropImg" data-i="${i}" aria-label="Quitar captura">${ICON_X}</button></span>`).join('')}</div>` : ''}
       <textarea id="aiText" rows="2" placeholder="${a.preguntas.length ? 'Respóndele o explícale algo más…' : 'Escribe o dicta con el 🎤 del teclado…'}">${esc(a.draft)}</textarea>
       <div class="btn-row">
         <button class="btn ghost" data-action="aiPick" ${a.busy ? 'disabled' : ''}>📎 Capturas</button>
@@ -2110,7 +2323,12 @@ async function aiAddFiles(files) {
 
 function aiTodayText() {
   const t = todayISO(), d = fromISO(t);
-  return `Hoy es ${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()} (${t}).`;
+  const subs = subsOf('ocio').map(s => `${s.id} (${s.name})`).join(', ');
+  // Lo que el usuario ya enseñó (últimos 60 comercios), para que la IA no tenga que adivinar
+  const learned = Object.entries(state.merchantMap || {}).slice(-60)
+    .map(([k, c]) => `${k} → ${c}${c === 'ocio' && state.merchantSub?.[k] ? '/' + state.merchantSub[k] : ''}`).join('; ');
+  return `Hoy es ${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()} (${t}).
+Tipos de ocio (subcategoria): ${subs}.${learned ? `\nComercios que ya he clasificado yo (primeras palabras → categoría/tipo): ${learned}.` : ''}`;
 }
 
 async function aiSend() {
@@ -2183,7 +2401,12 @@ function aiReview() {
     const iso = parseDateStrict(g.fecha);
     const date = iso && iso <= t ? iso : t;
     const dup = existing.has(date + '|' + g.importe.toFixed(2));
-    return { amount: g.importe, note: g.concepto || '', date, cat: CAT[g.categoria] ? g.categoria : 'otros', dup, checked: !dup };
+    // Lo que el usuario enseñó manda sobre lo que diga la IA
+    const note = g.concepto || '';
+    const cat = learnedCat(note) || (CAT[g.categoria] ? g.categoria : null) || autoCat(note) || 'otros';
+    const k = learnedKey(note), taught = k && state.merchantMap[k] === 'ocio' ? state.merchantSub?.[k] : '';
+    const sub = cat !== 'ocio' ? '' : (taught || (subOf('ocio', g.subcategoria) ? g.subcategoria : '') || guessSub(note));
+    return { amount: g.importe, note, date, cat, sub, dup, checked: !dup };
   });
   openReview(items, 'ia');
 }
@@ -2216,6 +2439,9 @@ const actions = {
   },
   key: el => keyPress(el.dataset.k),
   pickCat: el => pickCat(el.dataset.cat),
+  pickSub: el => pickCat('ocio', el.dataset.sub),
+  subBack: () => { setSheet(addHTML()); updateAmt(); updateSuggest(); },
+  newSub: () => { const id = newSub(); if (id) pickCat('ocio', id); },
   setDate: el => { add.date = el.dataset.d; add.note = $('#note').value; setSheet(addHTML()); updateAmt(); updateSuggest(); },
   editExpense: el => {
     const e = state.expenses.find(x => x.id === el.dataset.id);
@@ -2386,7 +2612,15 @@ document.addEventListener('change', e => {
     const box = rv.closest('.rv'), it = review.items[Number(box.dataset.i)];
     const k = rv.dataset.rv;
     if (k === 'checked') { it.checked = rv.checked; box.classList.toggle('off', !rv.checked); const n = review.items.filter(i => i.checked).length; const btn = $('[data-action="rvSave"]'); btn.disabled = !n; btn.textContent = `Guardar ${n} ${n === 1 ? 'gasto' : 'gastos'}`; }
-    if (k === 'cat') it.cat = rv.value;
+    if (k === 'cat') {
+      it.cat = rv.value;
+      it.sub = it.cat === 'ocio' ? guessSub(it.note) : '';
+      setSheet(reviewHTML());
+    }
+    if (k === 'sub') {
+      if (rv.value === '__new') { it.sub = newSub() || it.sub || ''; setSheet(reviewHTML()); }
+      else it.sub = rv.value;
+    }
     if (k === 'date') it.date = rv.value || todayISO();
   }
 });

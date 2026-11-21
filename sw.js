@@ -1,7 +1,7 @@
 /* Service worker: permite abrir Hucha sin conexión.
    Estrategia "primero red": si hay internet siempre carga la última versión;
    si no, usa la copia guardada. */
-const CACHE = 'hucha-v9';
+const CACHE = 'hucha-v10';
 const ASSETS = [
   './', './index.html', './styles.css', './app.js', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',

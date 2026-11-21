@@ -88,7 +88,8 @@ p { margin: 0 0 12px; }
 }
 .top-title { font-weight: 800; font-size: 22px; letter-spacing: -.4px; }
 .top-title small { display: block; font-weight: 500; font-size: 14px; color: var(--muted); letter-spacing: 0; }
-.icon-btn { width: 44px; height: 44px; border-radius: 50%; font-size: 20px; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow); }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; font-size: 20px; line-height: 1; padding: 0; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow); color: var(--text); flex: none; }
+.icon-btn svg, .fab svg, .x svg, .del svg, .ai-thumbs button svg { display: block; }
 .view { padding: 8px 16px calc(120px + var(--safe-b)); }
 
 /* ---------- Barra de pestañas ---------- */
@@ -106,7 +107,7 @@ p { margin: 0 0 12px; }
 .tabbar button.active { color: var(--accent); font-weight: 700; }
 .tabbar button.active span, .tabbar .tab-ai span { filter: none; opacity: 1; }
 .fab {
-  justify-self: center; width: 66px; height: 66px; border-radius: 50%;
+  justify-self: center; width: 66px; height: 66px; border-radius: 50%; padding: 0; display: grid; place-items: center;
   background: var(--accent); color: var(--accent-ink); font-size: 38px; font-weight: 400; line-height: 1;
   transform: translateY(-18px); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 45%, transparent);
   transition: transform .12s;
@@ -124,7 +125,7 @@ p { margin: 0 0 12px; }
 .hero.is-warn .big-number { color: var(--warn); }
 .hero.is-good .big-number { color: var(--good); }
 .hint { background: var(--accent-soft); padding-right: 48px; }
-.hint .x, .card .x { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; color: var(--muted); }
+.hint .x, .card .x { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; color: var(--muted); padding: 0; display: grid; place-items: center; }
 .tip-card { display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%; }
 .tip-card .emoji { font-size: 28px; }
 
@@ -293,22 +294,34 @@ textarea { min-height: 140px; resize: vertical; }
 .list-plain { list-style: none; padding: 0; margin: 0 0 10px; }
 .list-plain li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .list-plain li .grow { flex: 1; min-width: 0; }
-.del { width: 36px; height: 36px; border-radius: 50%; background: var(--track); color: var(--muted); flex: none; }
+.del { width: 36px; height: 36px; border-radius: 50%; background: var(--track); color: var(--muted); flex: none; padding: 0; display: grid; place-items: center; }
+.del svg { width: 14px; height: 14px; }
 .emoji-pick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .emoji-pick button { width: 46px; height: 46px; border-radius: 14px; background: var(--track); font-size: 24px; border: 2px solid transparent; }
 .emoji-pick button.on { border-color: var(--accent); background: var(--accent-soft); }
 
 /* ---------- Revisión de capturas / CSV ---------- */
-.rv { border: 1px solid var(--line); border-radius: 16px; padding: 10px; margin-bottom: 10px; display: grid; gap: 8px; }
+.rv { border: 1px solid var(--line); border-radius: 16px; padding: 10px; margin-bottom: 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .rv.off { opacity: .5; }
 .rv-top { display: flex; gap: 8px; align-items: center; }
 .rv-top input[type="checkbox"] { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none; }
 .rv-note { flex: 1; min-width: 0; }
 .rv-amt { width: 96px; text-align: right; font-weight: 700; }
-.rv-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rv-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .rv input, .rv select { font-size: 16px; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); width: 100%; min-width: 0; }
 .rv .rv-note { flex: 1; width: auto; }
 .rv .rv-amt { flex: none; width: 92px; }
+.rv select, .rv input[type="date"] { height: 44px; }
+/* iPhone: los campos de fecha ignoran el ancho y se descentran si no se les quita el estilo nativo */
+input[type="date"] { -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%; display: block; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+.rv input[type="date"] { text-align: left; }
+/* Tipos de ocio */
+.subgrid { grid-template-columns: repeat(3, 1fr); margin-top: 12px; }
+.subgrid .cat { min-height: 76px; font-size: 13px; }
+.ghost-cat { background: none; border: 2px dashed var(--line); color: var(--muted); }
+.sub-line { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 6px 8px 46px; font-size: 13px; color: var(--muted); }
+.sub-line b { color: var(--text); font-weight: 600; }
 .dup { font-size: 12px; font-weight: 700; color: var(--warn); }
 .sticky-save { position: sticky; bottom: calc(-18px - var(--safe-b)); background: var(--card); padding: 12px 0 calc(6px + var(--safe-b)); }
 .progress { height: 10px; background: var(--track); border-radius: 99px; overflow: hidden; margin: 18px 0 8px; }
@@ -417,7 +430,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .ai-thumbs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 8px; }
 .ai-thumbs span { position: relative; flex: none; }
 .ai-thumbs img { width: 56px; height: 80px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); display: block; }
-.ai-thumbs button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--text, #222); color: var(--card); font-size: 12px; line-height: 1; }
+.ai-thumbs button { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--text, #222); color: var(--card); font-size: 12px; line-height: 1; padding: 0; display: grid; place-items: center; }
+.ai-thumbs button svg { width: 12px; height: 12px; }
 .ai-foot { margin: 6px 0 0; text-align: center; }
 .ai-foot .btn.link { padding: 0; min-height: 0; font-size: inherit; }
 
