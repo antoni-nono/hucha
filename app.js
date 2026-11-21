@@ -13,7 +13,7 @@ const CATS = [
   { id: 'super', name: 'Supermercado', short: 'Súper', emoji: '🛒', type: 'need', color: '#4c9a6a' },
   { id: 'casa', name: 'Casa y facturas', short: 'Casa', emoji: '🏠', type: 'need', color: '#4f7fb8' },
   { id: 'transporte', name: 'Transporte', short: 'Transporte', emoji: '🚌', type: 'need', color: '#3f8f9b' },
-  { id: 'salud', name: 'Salud', short: 'Salud', emoji: '💊', type: 'need', color: '#5aa39a' },
+  { id: 'salud', name: 'Salud y cuidado', short: 'Salud y cuidado', emoji: '💊', type: 'need', color: '#5aa39a' },
   { id: 'comer', name: 'Comer fuera', short: 'Comer fuera', emoji: '🍽️', type: 'want', color: '#d08a4e' },
   { id: 'delivery', name: 'Comida a domicilio', short: 'Domicilio', emoji: '🛵', type: 'want', color: '#c9666f' },
   { id: 'cafe', name: 'Cafés y snacks', short: 'Cafés', emoji: '☕', type: 'want', color: '#9a7353' },
@@ -35,12 +35,12 @@ const RULES = [
   ['comer', ['restaurante', 'bar', 'burger', 'mcdonalds', 'mc donalds', 'kfc', 'taberna', 'vips', 'foster', 'goiko', 'pizzeria', 'sushi', 'tapas', 'cerveceria', 'five guys', 'montaditos', 'rodilla', 'taco bell', 'popeyes', 'wok', 'kebab', 'tagliatella', 'ginos', 'asador', 'meson']],
   ['transporte', ['renfe', 'metro', 'emt', 'tmb', 'cabify', 'uber', 'bolt', 'freenow', 'free now', 'taxi', 'gasolinera', 'gasolina', 'repsol', 'cepsa', 'galp', 'bp', 'shell', 'parking', 'aparcamiento', 'bicimad', 'bicing', 'alsa', 'peaje', 'autopista', 'blablacar', 'ouigo', 'iryo', 'abono transporte']],
   ['casa', ['alquiler', 'comunidad', 'endesa', 'iberdrola', 'naturgy', 'holaluz', 'totalenergies', 'movistar', 'vodafone', 'orange', 'digi', 'yoigo', 'masmovil', 'pepephone', 'lowi', 'simyo', 'finetwork', 'jazztel', 'agua', 'canal de isabel', 'seguro hogar', 'leroy merlin', 'bauhaus', 'bricomart', 'luz', 'gas natural', 'internet', 'fibra']],
-  ['salud', ['farmacia', 'clinica', 'dentista', 'hospital', 'medico', 'optica', 'fisio', 'fisioterapia', 'sanitas', 'adeslas', 'dkv', 'asisa', 'psicologo', 'psicologa', 'parafarmacia']],
+  ['salud', ['farmacia', 'clinica', 'dentista', 'hospital', 'medico', 'optica', 'fisio', 'fisioterapia', 'sanitas', 'adeslas', 'dkv', 'asisa', 'psicologo', 'psicologa', 'parafarmacia', 'peluqueria', 'peluqueros', 'peluquero', 'barberia', 'barber', 'hairsal', 'hair', 'estetica', 'manicura', 'depilacion']],
   ['ocio', ['cine', 'cines', 'yelmo', 'cinesa', 'kinepolis', 'entradas', 'ticketmaster', 'steam', 'playstation', 'nintendo', 'xbox', 'teatro', 'museo', 'concierto', 'discoteca', 'bolera', 'escape room', 'casa del libro', 'libreria',
     'padel', 'tenis', 'golf', 'karting', 'bowling', 'escalada', 'kayak', 'surf', 'surfing', 'bodyboard', 'surfcamp', 'diving', 'divers', 'dive', 'buceo', 'submarinismo', 'scuba', 'pub', 'club', 'fiesta', 'cocteleria', 'copas']],
   ['viajes', ['iberia', 'vueling', 'ryanair', 'easyjet', 'air europa', 'booking', 'airbnb', 'hotel', 'hostal', 'expedia', 'edreams', 'volotea', 'binter']],
   ['compras', ['amazon', 'amzn', 'zara', 'primark', 'shein', 'aliexpress', 'temu', 'corte ingles', 'decathlon', 'ikea', 'fnac', 'mediamarkt', 'media markt', 'pccomponentes', 'mango', 'pull bear', 'bershka', 'stradivarius', 'sephora', 'druni', 'primor', 'miniso', 'tiger', 'wallapop', 'vinted', 'h m', 'uniqlo', 'nike', 'adidas',
-    'bazar', 'peluqueria', 'peluqueros', 'barberia', 'barber', 'hairsal', 'hair', 'estetica', 'manicura', 'papeleria']],
+    'bazar', 'papeleria']],
 ];
 
 /* Tipos de ocio (subcategorías). El usuario puede añadir los suyos (state.ocioSubs). */
@@ -272,6 +272,18 @@ function load() {
   } catch (e) { return DEFAULT(); }
 }
 let state = load();
+/* Una sola vez: la peluquería deja de ser "Compras" y pasa a "Salud y cuidado" (gasto habitual, no capricho). */
+(function migratePeluqueria() {
+  state.mig = state.mig || {};
+  if (state.mig.peluq) return;
+  const isPeluq = t => /peluq|barber|hairsal|\bhair\b|estetica|manicura/.test(norm(t));
+  const keys = new Set();
+  for (const e of state.expenses) if (e.cat === 'compras' && isPeluq(e.note)) { e.cat = 'salud'; keys.add(merchantKey(e.note)); }
+  for (const r of state.recurring) if (r.cat === 'compras' && isPeluq(r.name)) r.cat = 'salud';
+  for (const k of Object.keys(state.merchantMap)) if (state.merchantMap[k] === 'compras' && (isPeluq(k) || keys.has(k))) state.merchantMap[k] = 'salud';
+  state.mig.peluq = 1;
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* sin espacio */ }
+})();
 function persist() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch (e) { toast('⚠️ No se ha podido guardar (¿memoria llena?)'); }
@@ -2157,12 +2169,12 @@ const AI_CAT_HINTS = {
   super: 'Mercadona, Spar, Suma, Lidl, fruterías, panaderías',
   casa: 'alquiler, luz, agua, internet, móvil, cosas para la casa',
   transporte: 'gasolina, guagua/bus, taxi, parking, Uber',
-  salud: 'farmacia, médico, dentista, óptica, fisio',
+  salud: 'farmacia, médico, dentista, óptica, fisio, peluquería, barbería, estética',
   comer: 'restaurantes, bares, cenas fuera',
   delivery: 'Glovo, Just Eat, Uber Eats',
   cafe: 'cafeterías, snacks, heladerías',
   ocio: 'cine, conciertos, planes, fiesta, deporte (pádel, surf, buceo), juegos, libros',
-  compras: 'ropa, Amazon, bazares, tecnología, peluquería, regalos',
+  compras: 'ropa, Amazon, bazares, tecnología, regalos',
   subs: 'suscripciones mensuales, gimnasio, cursos online pagados a plazos',
   viajes: 'vuelos, hoteles, Airbnb',
   otros: 'lo que no encaje (copias, trámites, comisiones…)',
