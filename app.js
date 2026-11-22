@@ -1384,15 +1384,15 @@ function finalizeItems(raw) {
   const hasNeg = raw.some(x => x.amount < 0);
   const existing = new Set(state.expenses.map(e => e.date + '|' + e.amount.toFixed(2)));
   let incomes = 0;
-  const items = [];
+  const items = [], incomeKeys = [];
   for (const x of raw) {
-    if (x.income || (hasNeg && x.amount > 0)) { incomes++; continue; }
+    if (x.income || (hasNeg && x.amount > 0)) { incomes++; incomeKeys.push(`${x.date || ''}|${Math.abs(x.amount).toFixed(2)}`); continue; }
     const amount = Math.abs(x.amount), date = x.date || todayISO();
     const dup = existing.has(date + '|' + amount.toFixed(2));
     const cat = autoCat(x.note) || 'otros';
     items.push({ amount, note: x.note || '', date, cat, sub: cat === 'ocio' ? guessSub(x.note) : '', dup, checked: !dup });
   }
-  return { items, incomes };
+  return { items, incomes, incomeKeys };
 }
 
 function loadingSheet(msg) {
@@ -1401,25 +1401,48 @@ function loadingSheet(msg) {
     <div class="progress"><i id="loadBar"></i></div></div>`, 'loading');
 }
 
-async function runOCR(file) {
-  loadingSheet('Leyendo la captura…');
+const OCR_MAX = 10;
+/** Lee una o varias capturas en el propio móvil y junta los gastos (sin repetir los que salen en dos fotos). */
+async function runOCR(files) {
+  files = [].concat(files).slice(0, OCR_MAX);
+  const n = files.length;
+  loadingSheet(n > 1 ? `Leyendo ${n} capturas…` : 'Leyendo la captura…');
+  let cur = 0;
+  const msg = t => { const lm = $('#loadMsg'); if (lm) lm.textContent = t; };
   try {
     await loadScript(TESSERACT_URL);
     const worker = await Tesseract.createWorker('spa', 1, {
       logger: m => {
         const bar = $('#loadBar');
         if (!bar) return;
-        if (m.status === 'recognizing text') bar.style.width = Math.round(m.progress * 100) + '%';
-        else if (/loading|initializ/.test(m.status)) { bar.style.width = '8%'; const lm = $('#loadMsg'); if (lm) lm.textContent = 'La primera vez descarga el "diccionario" (unos segundos)…'; }
+        if (m.status === 'recognizing text') bar.style.width = Math.round((cur + m.progress) / n * 100) + '%';
+        else if (/loading|initializ/.test(m.status)) { bar.style.width = '8%'; msg('La primera vez descarga el "diccionario" (unos segundos)…'); }
       },
     });
-    const { data } = await worker.recognize(file);
+    const seen = new Map();   // clave → cuántas veces ha salido en las fotos anteriores
+    const items = [], incomeSeen = new Set();
+    for (cur = 0; cur < n; cur++) {
+      if (n > 1) msg(`Captura ${cur + 1} de ${n}. Se hace en tu móvil: no se sube a ningún sitio.`);
+      const { data } = await worker.recognize(files[cur]);
+      if (sheetKind !== 'loading') { await worker.terminate(); return; } // lo ha cancelado
+      const res = textToItems(data.text);
+      (res.incomeKeys || []).forEach(k => incomeSeen.add(k));
+      const here = new Map();
+      for (const it of res.items) {
+        const k = `${it.date}|${it.amount.toFixed(2)}|${merchantKey(it.note)}`;
+        const i = (here.get(k) || 0) + 1;
+        here.set(k, i);
+        if (i > (seen.get(k) || 0)) items.push(it);   // si ya salió en otra foto, es la misma captura solapada
+      }
+      for (const [k, c] of here) seen.set(k, Math.max(c, seen.get(k) || 0));
+    }
     await worker.terminate();
-    if (sheetKind !== 'loading') return; // lo ha cancelado
-    handleParsed(textToItems(data.text), 'ocr');
+    if (sheetKind !== 'loading') return;
+    items.sort((a, b) => b.date.localeCompare(a.date));
+    handleParsed({ items, incomes: incomeSeen.size }, 'ocr');
   } catch (err) {
     if (sheetKind !== 'loading') return;
-    setSheet(`${sheetHead('')}<div class="ob"><div class="ob-emoji">😕</div><h2>No he podido leerla</h2>
+    setSheet(`${sheetHead('')}<div class="ob"><div class="ob-emoji">😕</div><h2>No he podido leerla${n > 1 ? 's' : ''}</h2>
       <p class="muted">La primera vez hace falta conexión para descargar el lector. También puedes escribir el importe a mano.</p>
       <button class="btn primary w100" data-action="openAddBlank">Apuntar a mano</button></div>`);
   }
@@ -2637,7 +2660,11 @@ document.addEventListener('change', e => {
   }
 });
 
-$('#fileImg').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) runOCR(f); });
+$('#fileImg').addEventListener('change', e => {
+  const fs = [...e.target.files]; e.target.value = '';
+  if (fs.length > OCR_MAX) toast(`Leo las ${OCR_MAX} primeras; el resto, en otra tanda`);
+  if (fs.length) runOCR(fs);
+});
 $('#fileBank').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBank(f); });
 $('#fileJson').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importBackupFile(f); });
 $('#fileAi').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) aiAddFiles(fs); });
