@@ -1085,7 +1085,7 @@ function openAdd(pre = {}) {
   add = {
     amount: pre.amount > 0 ? amountToStr(pre.amount) : '',
     cat: pre.cat || null, note: pre.note || '', date: pre.date || todayISO(),
-    editId: pre.editId || null, source: pre.source || 'manual', wishId: pre.wishId || null,
+    editId: pre.editId || null, source: pre.source || 'manual', wishId: pre.wishId || null, sub: pre.sub || '',
   };
   openSheet(addHTML(), 'add');
   updateAmt(); updateSuggest();
@@ -1111,11 +1111,32 @@ function addHTML() {
     <div class="keypad">
       ${['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'del'].map(k => `<button class="key" data-action="key" data-k="${k}" aria-label="${k === 'del' ? 'Borrar' : k}">${k === 'del' ? '⌫' : k}</button>`).join('')}
     </div>
-    <div class="cat-label">${add.editId ? 'Toca una categoría para guardar los cambios' : 'Toca una categoría y listo ✓'}</div>
+    <div class="cat-label">${add.editId ? 'Categoría' : 'Toca una categoría y listo ✓'}</div>
     <div class="catgrid">
       ${CATS.map(c => `<button class="cat ${add.cat === c.id ? 'selected' : ''}" data-action="pickCat" data-cat="${c.id}"><span class="e">${c.emoji}</span>${c.short}</button>`).join('')}
     </div>
-    ${add.editId ? `<div class="btn-row" style="margin-top:14px"><button class="btn danger" data-action="deleteExpense">🗑️ Borrar gasto</button></div>` : ''}`;
+    ${add.editId ? `<div id="editSubs">${editSubsHTML()}</div>
+    <button class="btn primary w100" data-action="saveEdit" style="margin-top:16px">✓ Guardar cambios</button>
+    <div class="btn-row" style="margin-top:10px"><button class="btn danger" data-action="deleteExpense">🗑️ Borrar gasto</button></div>` : ''}`;
+}
+
+/* Al editar: tocar una categoría solo la marca; se guarda con "Guardar cambios". */
+function editSubsHTML() {
+  if (add.cat !== 'ocio') return '';
+  const cur = add.sub || '';
+  return `<div class="cat-label" style="margin-top:12px">Tipo de ocio</div><div class="edit-subs">
+    ${subsOf('ocio').map(s => `<button class="chip ${cur === s.id ? 'on' : ''}" data-action="editSub" data-sub="${s.id}">${s.emoji} ${esc(s.name)}</button>`).join('')}
+    <button class="chip ${!cur ? 'on' : ''}" data-action="editSub" data-sub="">🎉 Solo ocio</button>
+    <button class="chip" data-action="editNewSub">＋ Otro tipo</button></div>`;
+}
+function editSelect(cat) {
+  add.cat = cat;
+  $$('.catgrid .cat').forEach(b => b.classList.toggle('selected', b.dataset.cat === cat));
+  const box = $('#editSubs'); if (box) box.innerHTML = editSubsHTML();
+}
+function saveEdit() {
+  if (!add.cat) { toast('Elige una categoría 👆'); return; }
+  pickCat(add.cat, add.cat === 'ocio' ? (add.sub || '') : '');
 }
 
 function updateAmt() {
@@ -2524,14 +2545,17 @@ const actions = {
     setSheet(settingsHTML()); toast('Desvinculado');
   },
   key: el => keyPress(el.dataset.k),
-  pickCat: el => pickCat(el.dataset.cat),
+  pickCat: el => (add?.editId ? editSelect(el.dataset.cat) : pickCat(el.dataset.cat)),
+  saveEdit: () => saveEdit(),
+  editSub: el => { add.sub = el.dataset.sub; editSelect('ocio'); },
+  editNewSub: () => { const id = newSub(); if (id) { add.sub = id; editSelect('ocio'); } },
   pickSub: el => pickCat('ocio', el.dataset.sub),
   subBack: () => { setSheet(addHTML()); updateAmt(); updateSuggest(); },
   newSub: () => { const id = newSub(); if (id) pickCat('ocio', id); },
   setDate: el => { add.date = el.dataset.d; add.note = $('#note').value; setSheet(addHTML()); updateAmt(); updateSuggest(); },
   editExpense: el => {
     const e = state.expenses.find(x => x.id === el.dataset.id);
-    if (e) openAdd({ amount: e.amount, cat: e.cat, note: e.note, date: e.date, editId: e.id, source: e.source });
+    if (e) openAdd({ amount: e.amount, cat: catOf(e.cat).id, note: e.note, date: e.date, editId: e.id, source: e.source, sub: e.sub });
   },
   deleteExpense: () => deleteExpense(),
   capture: () => $('#fileImg').click(),
