@@ -1310,7 +1310,7 @@ function parseStatement(lines) {
     let txt = line.replace(new RegExp(AMT_RE.source, 'gi'), ' ').split(CARD_RE)[0];
     // Quita basura del principio (iconos leídos como "NE)", "CoR", "RE", "7"…)
     txt = txt.replace(/^\s*(?:[^\p{L}\s]+|\p{L}*[^\p{L}\s-]+\p{L}*|\p{Lu}{1,3}|\p{Lu}\p{Ll}*\p{Lu}\p{L}*)\s+(?=\p{L})/u, '');
-    if (/\p{L}{2,}/u.test(txt)) cur.text += ' ' + txt;
+    if (/\p{L}{3,}/u.test(txt)) cur.text += ' ' + txt;
     cur.lines++;
     if (card || cur.lines >= 3) cur.done = true;
   }
@@ -1402,6 +1402,43 @@ function loadingSheet(msg) {
 }
 
 const OCR_MAX = 10;
+/** En las capturas de pantalla (fondo blanco o negro) se sube el contraste:
+    así el lector ve también los textos grises, como las fechas "Ayer" o "Domingo 22".
+    Las fotos (tickets…) se quedan como están. */
+async function ocrInput(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const c = document.createElement('canvas');
+    c.width = bmp.width; c.height = bmp.height;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close && bmp.close();
+    const im = ctx.getImageData(0, 0, c.width, c.height), d = im.data;
+    let light = 0, dark = 0, tot = 0;
+    for (let i = 0; i < d.length; i += 64) {
+      const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      if (v >= 240) light++; else if (v <= 25) dark++;
+      tot++;
+    }
+    const inv = dark / tot > 0.5;           // modo oscuro: letras claras sobre negro
+    if (!inv && light / tot < 0.5) return file;
+    for (let i = 0; i < d.length; i += 4) {
+      let v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      if (inv) v = 255 - v;
+      d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, (v - 60) * 255 / 175));   // gris 60→negro, 235→blanco
+    }
+    ctx.putImageData(im, 0, 0);
+    return await new Promise(r => c.toBlob(b => r(b || file), 'image/png'));
+  } catch { return file; }
+}
+
+/** Misma fecha + importe + comercio. Basta la 1.ª palabra del comercio, porque una foto
+    puede cortar "Vueling Airlines" en "Vueling" (menos en Bizum, donde importa a quién). */
+function dupKey(it) {
+  const mk = merchantKey(it.note), w0 = mk.split(' ')[0];
+  return `${it.date}|${it.amount.toFixed(2)}|${/^(bizum|transferencia|traspaso|recibo|adeudo|pago)$/.test(w0) ? mk : w0}`;
+}
+
 /** Lee una o varias capturas en el propio móvil y junta los gastos (sin repetir los que salen en dos fotos). */
 async function runOCR(files) {
   files = [].concat(files).slice(0, OCR_MAX);
@@ -1419,22 +1456,25 @@ async function runOCR(files) {
         else if (/loading|initializ/.test(m.status)) { bar.style.width = '8%'; msg('La primera vez descarga el "diccionario" (unos segundos)…'); }
       },
     });
-    const seen = new Map();   // clave → cuántas veces ha salido en las fotos anteriores
+    const seen = new Map();   // clave → gastos ya apuntados con esa clave
     const items = [], incomeSeen = new Set();
     for (cur = 0; cur < n; cur++) {
       if (n > 1) msg(`Captura ${cur + 1} de ${n}. Se hace en tu móvil: no se sube a ningún sitio.`);
-      const { data } = await worker.recognize(files[cur]);
+      const { data } = await worker.recognize(await ocrInput(files[cur]));
       if (sheetKind !== 'loading') { await worker.terminate(); return; } // lo ha cancelado
       const res = textToItems(data.text);
       (res.incomeKeys || []).forEach(k => incomeSeen.add(k));
-      const here = new Map();
+      const here = new Map();   // clave → cuántas veces sale en esta foto
       for (const it of res.items) {
-        const k = `${it.date}|${it.amount.toFixed(2)}|${merchantKey(it.note)}`;
+        const k = dupKey(it);
         const i = (here.get(k) || 0) + 1;
         here.set(k, i);
-        if (i > (seen.get(k) || 0)) items.push(it);   // si ya salió en otra foto, es la misma captura solapada
+        const prev = seen.get(k) || [];
+        if (i <= prev.length) {                  // ya salió en otra foto: es la misma captura solapada
+          const old = prev[i - 1];
+          if (it.note.length > old.note.length) old.note = it.note;   // nos quedamos con el nombre más completo
+        } else { items.push(it); prev.push(it); seen.set(k, prev); }
       }
-      for (const [k, c] of here) seen.set(k, Math.max(c, seen.get(k) || 0));
     }
     await worker.terminate();
     if (sheetKind !== 'loading') return;
