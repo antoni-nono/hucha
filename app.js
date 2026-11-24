@@ -48,17 +48,37 @@ const OCIO_SUBS = [
   { id: 'fiesta', emoji: '🪩', name: 'Fiesta' },
   { id: 'buceo', emoji: '🤿', name: 'Buceo' },
   { id: 'surf', emoji: '🏄', name: 'Surf' },
-  { id: 'deporte', emoji: '🎾', name: 'Deporte' },
+  { id: 'deporte', emoji: '🎾', name: 'Otro deporte' },
+  { id: 'gym', emoji: '🏋️', name: 'Gimnasio' },
   { id: 'amigos', emoji: '👫', name: 'Amigos' },
   { id: 'cultura', emoji: '🎬', name: 'Cine y cultura' },
 ];
 const SUB_RULES = [
   ['buceo', ['diving', 'divers', 'dive', 'buceo', 'submarinismo', 'scuba', 'padi']],
   ['surf', ['surf', 'surfing', 'bodyboard', 'surfcamp']],
-  ['deporte', ['padel', 'tenis', 'golf', 'karting', 'bowling', 'bolera', 'escalada', 'kayak', 'futbol', 'polideportivo', 'crossfit', 'yoga']],
+  ['gym', ['gimnasio', 'gym', 'crossfit', 'basic fit', 'basicfit', 'mcfit', 'altafit', 'yoga', 'pilates']],
+  ['deporte', ['padel', 'tenis', 'golf', 'karting', 'bowling', 'bolera', 'escalada', 'kayak', 'futbol', 'polideportivo']],
   ['fiesta', ['discoteca', 'pub', 'club', 'fiesta', 'cocteleria', 'copas']],
   ['cultura', ['cine', 'cines', 'yelmo', 'cinesa', 'kinepolis', 'teatro', 'museo', 'concierto', 'ticketmaster', 'entradas', 'libreria', 'casa del libro']],
 ];
+
+/* Grupos para "Tu mes": juntan categorías parecidas. No cambian cómo se apunta un gasto.
+   - Comida = Súper + Comer fuera + Domicilio + Cafés
+   - Deporte = tipos de ocio deportivos (buceo, surf, pádel, gimnasio…) y el gimnasio/CrossFit aunque esté en otra categoría */
+const GROUPS = {
+  comida: { id: 'comida', name: 'Comida', emoji: '🍽️', color: '#d08a4e', cats: ['super', 'comer', 'delivery', 'cafe'] },
+  deporte: { id: 'deporte', name: 'Deporte', emoji: '🏄', color: '#3fa7d6' },
+};
+const SPORT_SUBS = new Set(['buceo', 'surf', 'deporte', 'gym']);
+const SPORT_RE = /\b(gimnasio|gym|crossfit|cross fit|basic ?fit|mcfit|altafit|yoga|pilates|padel|tenis|surf|buceo|diving|escalada|boulder|natacion|piscina|running|correr|futbol|baloncesto|ciclismo|bici|boxeo|kite|windsurf|paddle|senderismo|trail|apnea|skate|esqui|ski|deporte|deportes)\b/;
+const isSportSub = sb => !!sb && (SPORT_SUBS.has(sb.id) || SPORT_RE.test(norm(sb.name)));
+function groupOf(e) {
+  const c = catOf(e.cat).id;
+  if (GROUPS.comida.cats.includes(c)) return GROUPS.comida;
+  if (c === 'ocio' && isSportSub(subOf('ocio', e.sub))) return GROUPS.deporte;
+  if (['ocio', 'subs', 'salud', 'otros'].includes(c) && !e.sub && /\b(gimnasio|gym|crossfit|basic ?fit|mcfit|altafit)\b/.test(norm(e.note || ''))) return GROUPS.deporte;
+  return catOf(c);
+}
 
 const BADGES = [
   { id: 'first', emoji: '🌱', name: 'Primer paso', desc: 'Apunta tu primer gasto' },
@@ -876,12 +896,14 @@ function viewMes() {
 
   if (!ex.length) return html + `<section class="card empty"><div class="empty-emoji">📭</div><p>No hay gastos en este periodo.</p></section>`;
 
-  const byCat = CATS.map(c => ({ c, v: sum(ex.filter(e => catOf(e.cat).id === c.id)) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+  const gmap = new Map();
+  for (const e of ex) { const g = groupOf(e); if (!gmap.has(g.id)) gmap.set(g.id, { c: g, items: [] }); gmap.get(g.id).items.push(e); }
+  const byCat = [...gmap.values()].map(x => ({ ...x, v: sum(x.items) })).sort((a, b) => b.v - a.v);
   html += `<section class="card"><h3>¿En qué se va?</h3>
     <div class="donut-wrap">${donut(byCat, total)}<div class="donut-center"><div><b>${moneyR(total)}</b><small>${ex.length} ${ex.length === 1 ? 'gasto' : 'gastos'}</small></div></div></div>
     <ul class="legend">${byCat.map(x => `<li><button data-action="filterCat" data-cat="${x.c.id}" class="${ui.cat === x.c.id ? 'on' : ''}" aria-expanded="${ui.cat === x.c.id}">
-      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b><span class="chev" aria-hidden="true"></span></button>${subsLine(x.c.id, ex)}${ui.cat === x.c.id ? catDetail(x.c.id, ex) : ''}</li>`).join('')}</ul>
-    <p class="muted small" style="margin:8px 0 0">Toca una categoría para ver en qué te lo has gastado.</p></section>`;
+      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b><span class="chev" aria-hidden="true"></span></button>${groupLine(x.c.id, x.items)}${ui.cat === x.c.id ? catDetail(x.items) : ''}</li>`).join('')}</ul>
+    <p class="muted small" style="margin:8px 0 0">Toca un grupo para ver en qué te lo has gastado. Comida junta súper, comer fuera, domicilio y cafés; Deporte, el ocio deportivo y el gimnasio.</p></section>`;
 
   const needs = sum(ex.filter(e => catOf(e.cat).type === 'need')), wants = total - needs;
   html += `<section class="card"><h3>Necesidades vs. caprichos</h3>
@@ -904,28 +926,31 @@ function viewMes() {
   return html;
 }
 
-/** Desglose de una categoría: "24 nov · Peluquería · 12 €". Cada gasto se puede tocar para cambiarlo. */
-function catDetail(cat, ex) {
-  const arr = ex.filter(e => catOf(e.cat).id === cat).sort(byRecent);
+/** Desglose de un grupo: "24 nov · 🛒 Mercadona · 22 €". Cada gasto se puede tocar para cambiarlo. */
+function catDetail(items) {
+  const arr = [...items].sort(byRecent);
+  const many = new Set(arr.map(e => catOf(e.cat).id)).size > 1;
   return `<ul class="cat-detail">${arr.map(e => {
-    const d = fromISO(e.date), sb = subOf(cat, e.sub);
+    const d = fromISO(e.date), sb = subOf(e.cat, e.sub), ico = sb ? sb.emoji : many ? catOf(e.cat).emoji : '';
     return `<li><button data-action="editExpense" data-id="${e.id}">
       <span class="cd-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span>
-      <span class="cd-note">${sb ? sb.emoji + ' ' : ''}${esc(e.note || catOf(e.cat).name)}${e.source === 'fijo' ? ' <span class="muted">🔁</span>' : ''}</span>
+      <span class="cd-note">${ico ? ico + ' ' : ''}${esc(e.note || catOf(e.cat).name)}${e.source === 'fijo' ? ' <span class="muted">🔁</span>' : ''}</span>
       <b class="num">${money(e.amount)}</b></button></li>`;
   }).join('')}</ul>`;
 }
 
-/** Desglose por tipo (ocio): "🤿 Buceo 42 € · 🎾 Deporte 10 €" */
-function subsLine(cat, ex) {
-  const subs = subsOf(cat);
-  if (!subs.length) return '';
-  const inCat = ex.filter(e => catOf(e.cat).id === cat);
-  const rows = [...subs, { id: '', emoji: '🎉', name: 'Sin tipo' }]
-    .map(s => ({ s, v: sum(inCat.filter(e => (subOf(cat, e.sub)?.id || '') === s.id)) }))
-    .filter(x => x.v > 0).sort((a, b) => b.v - a.v);
-  if (!rows.length || (rows.length === 1 && !rows[0].s.id)) return '';
-  return `<div class="sub-line">${rows.map(x => `<span>${x.s.emoji} ${esc(x.s.name)} <b class="num">${moneyR(x.v)}</b></span>`).join('')}</div>`;
+/** Desglose bajo cada grupo: Comida → "🛒 Súper 200 € · 🍽️ Comer fuera 300 €"; Ocio y Deporte → por tipo. */
+function groupLine(gid, items) {
+  let part;
+  if (gid === 'comida') part = e => { const c = catOf(e.cat); return { id: c.id, emoji: c.emoji, name: c.short }; };
+  else if (gid === 'deporte') part = e => subOf('ocio', e.sub) || subOf('ocio', 'gym');
+  else if (gid === 'ocio') part = e => subOf('ocio', e.sub) || { id: '', emoji: '🎉', name: 'Sin tipo' };
+  else return '';
+  const rows = new Map();
+  for (const e of items) { const k = part(e); const r = rows.get(k.id) || { s: k, v: 0 }; r.v += e.amount; rows.set(k.id, r); }
+  const list = [...rows.values()].sort((a, b) => b.v - a.v);
+  if (gid !== 'comida' && list.length === 1 && !list[0].s.id) return '';
+  return `<div class="sub-line">${list.map(x => `<span>${x.s.emoji} ${esc(x.s.name)} <b class="num">${moneyR(x.v)}</b></span>`).join('')}</div>`;
 }
 
 /* ---------- Calendario: qué días gastas más ---------- */
