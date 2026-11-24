@@ -178,7 +178,7 @@ p { margin: 0 0 12px; }
 .donut-center b { font-size: 22px; font-variant-numeric: tabular-nums; }
 .donut-center small { display: block; color: var(--muted); font-size: 13px; }
 .legend { list-style: none; padding: 0; margin: 0; }
-.legend button { display: grid; grid-template-columns: 30px 1fr auto auto; gap: 10px; align-items: center; width: 100%; padding: 9px 6px; border-radius: 12px; text-align: left; }
+.legend button { display: grid; grid-template-columns: 30px 1fr auto auto 10px; gap: 10px; align-items: center; width: 100%; padding: 9px 6px; border-radius: 12px; text-align: left; }
 .legend button.on { background: var(--accent-soft); }
 .legend .sw { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; }
 .legend .pct { color: var(--muted); font-size: 14px; width: 42px; text-align: right; }
@@ -488,3 +488,14 @@ select, .field select, .rv select {
   background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 8px;
   padding-right: 36px; text-overflow: ellipsis;
 }
+
+/* Desglose de una categoría en "Tu mes" */
+.legend .chev { width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); justify-self: center; transition: transform .2s; }
+.legend button.on .chev { transform: rotate(45deg) translate(-2px, -2px); }
+.cat-detail { list-style: none; margin: 2px 0 10px 46px; padding: 0 0 0 12px; border-left: 2px solid var(--accent-soft); animation: catIn .2s ease-out; }
+.cat-detail button { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; width: 100%; padding: 8px 4px; text-align: left; border-radius: 10px; font-size: 15px; }
+.cat-detail button:active { background: var(--accent-soft); }
+.cat-detail .cd-date { color: var(--muted); font-size: 13px; }
+.cat-detail .cd-note { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+@keyframes catIn { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .cat-detail { animation: none; } .legend .chev { transition: none; } }

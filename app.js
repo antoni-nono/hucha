@@ -879,9 +879,9 @@ function viewMes() {
   const byCat = CATS.map(c => ({ c, v: sum(ex.filter(e => catOf(e.cat).id === c.id)) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
   html += `<section class="card"><h3>¿En qué se va?</h3>
     <div class="donut-wrap">${donut(byCat, total)}<div class="donut-center"><div><b>${moneyR(total)}</b><small>${ex.length} ${ex.length === 1 ? 'gasto' : 'gastos'}</small></div></div></div>
-    <ul class="legend">${byCat.map(x => `<li><button data-action="filterCat" data-cat="${x.c.id}" class="${ui.cat === x.c.id ? 'on' : ''}">
-      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b></button>${subsLine(x.c.id, ex)}</li>`).join('')}</ul>
-    <p class="muted small" style="margin:8px 0 0">Toca una categoría para ver solo esos gastos.</p></section>`;
+    <ul class="legend">${byCat.map(x => `<li><button data-action="filterCat" data-cat="${x.c.id}" class="${ui.cat === x.c.id ? 'on' : ''}" aria-expanded="${ui.cat === x.c.id}">
+      <span class="sw" style="background:${x.c.color}22">${x.c.emoji}</span><span>${x.c.name}</span><span class="pct">${Math.round(x.v / total * 100)} %</span><b class="num">${money(x.v)}</b><span class="chev" aria-hidden="true"></span></button>${subsLine(x.c.id, ex)}${ui.cat === x.c.id ? catDetail(x.c.id, ex) : ''}</li>`).join('')}</ul>
+    <p class="muted small" style="margin:8px 0 0">Toca una categoría para ver en qué te lo has gastado.</p></section>`;
 
   const needs = sum(ex.filter(e => catOf(e.cat).type === 'need')), wants = total - needs;
   html += `<section class="card"><h3>Necesidades vs. caprichos</h3>
@@ -891,18 +891,29 @@ function viewMes() {
 
   html += calendarHTML(p, ex, t);
 
-  const list = ex.filter(e => (!ui.cat || catOf(e.cat).id === ui.cat) && (!ui.day || e.date === ui.day)).sort(byRecent);
+  const list = ex.filter(e => !ui.day || e.date === ui.day).sort(byRecent);
   const groups = {};
   for (const e of list) (groups[e.date] = groups[e.date] || []).push(e);
   const filters = [
     ui.day ? `<button class="pill" data-action="pickDay" data-d="${ui.day}">${niceDate(ui.day)} ✕</button>` : '',
-    ui.cat ? `<button class="pill" data-action="filterCat" data-cat="${ui.cat}">${catOf(ui.cat).emoji} ${catOf(ui.cat).name} ✕</button>` : '',
   ].join(' ');
   html += `<section class="card" id="movs"><h3>Movimientos ${filters}</h3>
     ${list.length ? Object.entries(groups).map(([d, arr]) => `<div class="day-head"><span>${niceDate(d)}</span><span>${money(sum(arr))}</span></div>${listRows(arr)}`).join('')
       : `<p class="muted">${ui.day && ui.day <= t ? 'Ese día no gastaste nada ✨' : 'No hay gastos con este filtro.'}</p>`}
   </section>`;
   return html;
+}
+
+/** Desglose de una categoría: "24 nov · Peluquería · 12 €". Cada gasto se puede tocar para cambiarlo. */
+function catDetail(cat, ex) {
+  const arr = ex.filter(e => catOf(e.cat).id === cat).sort(byRecent);
+  return `<ul class="cat-detail">${arr.map(e => {
+    const d = fromISO(e.date), sb = subOf(cat, e.sub);
+    return `<li><button data-action="editExpense" data-id="${e.id}">
+      <span class="cd-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span>
+      <span class="cd-note">${sb ? sb.emoji + ' ' : ''}${esc(e.note || catOf(e.cat).name)}${e.source === 'fijo' ? ' <span class="muted">🔁</span>' : ''}</span>
+      <b class="num">${money(e.amount)}</b></button></li>`;
+  }).join('')}</ul>`;
 }
 
 /** Desglose por tipo (ocio): "🤿 Buceo 42 € · 🎾 Deporte 10 €" */
